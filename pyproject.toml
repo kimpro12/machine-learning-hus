@@ -12,7 +12,6 @@ dependencies = [
   "matplotlib==3.10.0",
   "joblib==1.4.2",
   "tldextract==5.1.2",
-  "pyarrow==21.0.0",
 ]
 
 [project.optional-dependencies]

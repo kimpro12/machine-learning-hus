@@ -38,3 +38,25 @@ def test_mrow_keys():
     for k in ('accuracy', 'bal_acc', 'prec', 'rec', 'spec', 'f1', 'macro_f1',
               'roc', 'pr', 'TN', 'FP', 'FN', 'TP', 'acc_lo', 'acc_hi'):
         assert k in r
+
+
+def test_load_jpcert_urls_dedup_and_order(tmp_path):
+    from phishing_ml.pipeline import load_jpcert_urls
+    (tmp_path / 'jpcert-202502.csv').write_text(
+        'date,URL,description\n2025/02/01,http://b.example/,X\n2025/02/02,http://a.example/,Y\n')
+    (tmp_path / 'jpcert-202501.csv').write_text(
+        'date,URL,description\n2025/01/01,http://a.example/,X\n2025/01/02,,Z\n')
+    # month order, empty dropped, first occurrence kept
+    assert load_jpcert_urls(tmp_path) == ['http://a.example/', 'http://b.example/']
+    assert load_jpcert_urls(tmp_path / 'missing') == []
+
+
+def test_run_blocks_cleanly_when_inputs_missing(tmp_path, monkeypatch, capsys):
+    import phishing_ml.pipeline as pl
+    monkeypatch.setattr(pl, 'PHISHVN_DATA', tmp_path / 'phishvn')
+    monkeypatch.setattr(pl, 'HASSAN_CSV', tmp_path / 'hassan.csv')
+    monkeypatch.setattr(pl, 'JPCERT_DIR', tmp_path / 'jpcert')
+    monkeypatch.setattr(pl, 'ROOT', tmp_path)
+    assert pl.run_pipeline('quick') == 2
+    out = capsys.readouterr().out
+    assert 'BLOCKED' in out and 'hassan.csv' in out and 'fetch-external' in out

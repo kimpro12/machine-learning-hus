@@ -51,6 +51,9 @@ from .preprocess import make_pipeline
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / 'outputs'
 FIG = ROOT / 'outputs' / 'figures'
+PHISHVN_DATA = ROOT / 'data' / 'phishvn' / 'data'
+HASSAN_CSV = ROOT / 'data' / 'external' / 'hassan_balanced_urls.csv'
+JPCERT_DIR = ROOT / 'data' / 'external' / 'jpcert'
 
 SUBSETS = ('FULL', 'GOLDSILVER')
 TIER_CORE = ('gold', 'silver')
@@ -91,8 +94,8 @@ def grids():
 
 def load_frames():
     """Load release tables + merge source/scenario via normalized key."""
-    v = pd.read_csv(ROOT / 'data' / 'phishvn' / 'data' / 'vn_compphish.csv', low_memory=False)
-    d = pd.read_csv(ROOT / 'data' / 'phishvn' / 'data' / 'dataset_url.csv', low_memory=False)
+    v = pd.read_csv(PHISHVN_DATA / 'vn_compphish.csv', low_memory=False)
+    d = pd.read_csv(PHISHVN_DATA / 'dataset_url.csv', low_memory=False)
     v['k'] = v['url'].map(norm_key)
     d['k'] = d['url'].map(norm_key)
     vv = pd.merge(v, d[['k', 'source', 'scenario']], on='k', how='left')
@@ -273,11 +276,21 @@ def _write_test_breakdowns(vv: pd.DataFrame, name: str, pipe) -> None:
 
 
 # ---------------------------------------------------------------- external evaluation
+def load_jpcert_urls(jdir: Path = JPCERT_DIR) -> list[str]:
+    """Unique non-empty URLs from JPCERT monthly CSVs (date,URL,description), month order."""
+    frames = [pd.read_csv(f, usecols=['URL'], dtype=str) for f in sorted(jdir.glob('jpcert-*.csv'))]
+    if not frames:
+        return []
+    urls = pd.concat(frames, ignore_index=True)['URL'].dropna().astype(str)
+    urls = urls[urls.str.len() > 0].drop_duplicates()
+    return urls.tolist()
+
+
 def run_external(frozen_info: dict) -> pd.DataFrame:
     from .features import phishvn_features
     ext_rows = []
     pipes = {n: joblib.load(OUT / f'frozen_{n.lower()}_best.joblib') for n in SUBSETS}
-    hpath = ROOT / 'data' / 'external' / 'hassan_balanced_urls.csv'
+    hpath = HASSAN_CSV
     if hpath.exists():
         h = pd.read_csv(hpath, low_memory=False)
         url_col = 'url' if 'url' in h.columns else h.columns[1]
@@ -320,10 +333,9 @@ def run_external(frozen_info: dict) -> pd.DataFrame:
                                  **_mrow(m2, yt, pr2, lo2, hi2), 'note': 'slice'})
     else:
         print('WARNING: Hassan CSV missing — external left unverified, not fabricated.')
-    jpar = ROOT / 'data' / 'external' / 'jpcert_with_lexical.parquet'
-    if jpar.exists():
-        jp = pd.read_parquet(jpar, columns=['ext_url'])
-        jf = pd.DataFrame([phishvn_features(u) for u in jp['ext_url'].tolist()])
+    jurls = load_jpcert_urls()
+    if len(jurls):
+        jf = pd.DataFrame([phishvn_features(u) for u in jurls])
         y = np.ones(len(jf), dtype=int)
         for name in SUBSETS:
             pred = pipes[name].predict(jf[FEATS])
@@ -657,7 +669,24 @@ Gold+silver-only looks accurate ({_f(fr['GOLDSILVER']['accuracy'])}) but F1 is {
 
 
 # ---------------------------------------------------------------- orchestrator
+def missing_inputs() -> list[str]:
+    """Input files the full pipeline + reports need; empty list = ready to run."""
+    need = [PHISHVN_DATA / 'vn_compphish.csv', PHISHVN_DATA / 'dataset_url.csv', HASSAN_CSV]
+    miss = [str(p.relative_to(ROOT)) for p in need if not p.exists()]
+    if not list(JPCERT_DIR.glob('jpcert-*.csv')):
+        miss.append(str((JPCERT_DIR / 'jpcert-*.csv').relative_to(ROOT)))
+    return miss
+
+
 def run_pipeline(mode: str = 'full') -> int:
+    miss = missing_inputs()
+    if miss:
+        print('BLOCKED: missing input files:')
+        for m in miss:
+            print(f'  {m}')
+        print('PhishVN: download from Mendeley DOI 10.17632/b97hxbxtpd.4 and extract into data/phishvn/.')
+        print('Hassan + JPCERT: python -m phishing_ml.cli fetch-external')
+        return 2
     OUT.mkdir(parents=True, exist_ok=True)
     FIG.mkdir(parents=True, exist_ok=True)
     t0 = time.time()

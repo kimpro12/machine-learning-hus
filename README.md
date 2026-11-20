@@ -40,12 +40,13 @@ Câu hỏi chính của repo **không phải** "đạt accuracy bao nhiêu" mà 
 6. **`data/phishvn/docs/datasheet.md`**: cách gán nhãn, độ đồng thuận giữa người gán (κ), tỷ lệ nhiễu nhãn.
 7. `outputs/feature_audit.csv`: cột nào được dùng để train, cột nào bị loại và lý do.
 
-### Bước 4: Code (≈30 phút). Chỉ có 5 file, đọc theo thứ tự:
+### Bước 4: Code (≈30 phút). Chỉ có 6 file, đọc theo thứ tự:
 1. `src/phishing_ml/features.py`: trích 21 feature từ chuỗi URL.
 2. `src/phishing_ml/pipeline.py`: **đọc hàm `run_pipeline` ở cuối file trước**. Nó gọi lần lượt từng bước, rồi bạn nhảy vào từng hàm (xem mục 4).
 3. `src/phishing_ml/evaluate.py`: cách tính metric và CI.
 4. `src/phishing_ml/preprocess.py`: pipeline imputer → scaler → model.
-5. `src/phishing_ml/cli.py`: entry point, chỉ khoảng 20 dòng.
+5. `src/phishing_ml/cli.py`: entry point, chỉ khoảng 30 dòng.
+6. `src/phishing_ml/download.py`: tải dữ liệu ngoài (Hassan, JPCERT).
 
 ### Bước 5: Test (≈5 phút)
 `tests/`: file ngắn, cho biết repo cam kết những gì: không leakage khi tiền xử lý, feature khớp đúng dataset, CI chính xác, grid model ổn định.
@@ -67,15 +68,16 @@ Project/
 ├── README.md
 ├── pyproject.toml              ← dependencies có pin version, cấu hình pytest/ruff
 ├── src/phishing_ml/
-│   ├── cli.py                  ← entry point: `run [--mode quick|full]`
+│   ├── cli.py                  ← entry point: `run [--mode quick|full]`, `fetch-external`
 │   ├── pipeline.py             ← toàn bộ pipeline thực nghiệm
 │   ├── features.py             ← trích 21 feature lexical (khớp đúng schema PhishVN)
 │   ├── evaluate.py             ← metrics + Clopper–Pearson CI
+│   ├── download.py             ← tải Hassan + JPCERT vào data/external/
 │   └── preprocess.py           ← sklearn Pipeline (chỉ fit trên train)
 ├── tests/
 ├── data/                       ← (CSV bị gitignore)
 │   ├── phishvn/                ← bản phát hành PhishVN: README, docs/, MANIFEST.txt, LICENSE, data/*.csv
-│   └── external/               ← Hassan 340k + JPCERT 2025 (chỉ để đánh giá ngoài)
+│   └── external/               ← hassan_balanced_urls.csv + jpcert/jpcert-2025MM.csv (chỉ để đánh giá ngoài)
 ├── outputs/                    ← mọi kết quả (model .joblib bị gitignore)
 │   ├── DECISION.md, QUICK_RESULTS.md
 │   ├── feature_audit.csv, quick_val_*.csv, classification_metrics.csv, external_metrics.csv
@@ -89,7 +91,7 @@ Project/
 
 ## 4. Pipeline: `pipeline.py` theo từng bước
 
-`run_pipeline(mode)` gọi các bước theo thứ tự sau:
+`run_pipeline(mode)` trước hết gọi `missing_inputs()`. Nếu thiếu file đầu vào, nó in ra danh sách file thiếu và dừng với mã 2. Đủ dữ liệu thì chạy lần lượt:
 
 | # | Hàm | Làm gì | Ghi ra |
 |---|---|---|---|
@@ -97,7 +99,7 @@ Project/
 | 2 | `run_audit` | Kiểm tra trùng URL, trùng domain giữa các split, `is_https` theo nhãn, danh sách feature được dùng | `feature_audit.csv` |
 | 3 | `run_quick` | Train trên **train**, chọn model trên **val** (10 cấu hình: dummy, LogReg, RF, LinearSVC) cho 2 tập: `FULL` và `GOLDSILVER` | `quick_val_*.csv`, `frozen_models.json` |
 | 4 | `run_final_test` | Fit lại model đã chọn, đánh giá **test một lần**, đóng băng model | `classification_metrics.csv`, `frozen_*.joblib`, `test_by_*.csv` |
-| 5 | `run_external` | Đưa model đóng băng vào Hassan (340k, cân bằng) và JPCERT (chỉ phishing). Ngưỡng cố định 0.5, **không tune** | `external_metrics.csv` |
+| 5 | `run_external` | Đưa model đóng băng vào Hassan (340k, cân bằng) và JPCERT (chỉ phishing; URL đọc bằng `load_jpcert_urls`). Ngưỡng cố định 0.5, **không tune** | `external_metrics.csv` |
 | 6 | `run_pca_cluster` | PCA chỉ fit trên train (RQ3); K-Means/GMM trên PCA(10) (RQ4). Bỏ qua khi `--mode quick` | `pca_results.csv`, `clustering_results.csv` |
 | 7 | `run_figures` | Vẽ hình | `figures/*.png` |
 | 8 | `write_reports` | Sinh báo cáo từ các CSV ở trên | `DECISION.md`, `QUICK_RESULTS.md` |
@@ -118,16 +120,18 @@ pip install -e ".[dev]"
 
 ### 5.1 Chuẩn bị dữ liệu (không có trong git)
 1. **PhishVN**: tải bản open tier từ Mendeley (DOI `10.17632/b97hxbxtpd.4`), giải nén sao cho có `data/phishvn/data/vn_compphish.csv`, `dataset_url.csv`, `splits/`, ... Kiểm tra hash bằng `data/phishvn/MANIFEST.txt`.
-2. **Dữ liệu ngoài** đặt trong `data/external/`:
-   - `hassan_balanced_urls.csv`: [Hassan-Albattra/URL_Phishing_Detection_Dataset](https://github.com/Hassan-Albattra/URL_Phishing_Detection_Dataset) (`balanced_urls.csv`, MIT).
-   - `jpcert_with_lexical.parquet` (chỉ cần cột `ext_url`): URL phishing từ [JPCERTCC/phishurl-list](https://github.com/JPCERTCC/phishurl-list) tháng 2025-01..06 (CSV thô nằm trong `data/external/jpcert/`).
+2. **Dữ liệu ngoài**: tải tự động bằng
+   ```bash
+   python -m phishing_ml.cli fetch-external
+   ```
+   Lệnh này tải `data/external/hassan_balanced_urls.csv` (từ [Hassan-Albattra/URL_Phishing_Detection_Dataset](https://github.com/Hassan-Albattra/URL_Phishing_Detection_Dataset), MIT, khoảng 31 MB, sha256 bắt đầu `8a864a7f`) và `data/external/jpcert/jpcert-202501..202506.csv` (từ [JPCERTCC/phishurl-list](https://github.com/JPCERTCC/phishurl-list)). File nào đã có thì bỏ qua.
 
 ### 5.2 Chạy
 ```bash
 python -m phishing_ml.cli run               # đầy đủ (gồm PCA + clustering)
 python -m phishing_ml.cli run --mode quick  # bỏ PCA/clustering
 ```
-Mọi kết quả được ghi đè vào `outputs/`. Pipeline tất định (seed 42), nên chạy lại sẽ ra cùng số liệu.
+Mọi kết quả được ghi đè vào `outputs/`. Pipeline tất định (seed 42), nên chạy lại sẽ ra cùng số liệu (chỉ cột thời gian `fit_s` thay đổi). Nếu thiếu dữ liệu, lệnh sẽ in `BLOCKED` kèm danh sách file thiếu.
 
 ### 5.3 Kiểm thử và lint
 ```bash
