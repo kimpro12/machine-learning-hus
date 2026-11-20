@@ -23,15 +23,18 @@ Câu hỏi chính của repo **không phải** "đạt accuracy bao nhiêu" mà 
 
 Đọc **kết quả → dữ liệu → code**, đừng mở code trước.
 
-### Bước 1: Kết luận (≈15 phút)
+### Bước 1: Kết luận (≈20 phút)
 1. **`README.md`** (file này): bức tranh tổng.
 2. **`outputs/DECISION.md`**: kết luận và lập luận: vì sao dataset phù hợp cho đồ án nhưng không dùng để triển khai được, lưu ý về GOLDSILVER. Đọc kỹ mục **"Vì sao macro-F1"**: nó giải thích vì sao **không chốt bằng accuracy**.
 3. **`outputs/QUICK_RESULTS.md`**: số liệu theo từng bước: audit → validation → test → slice bias → external → PCA/cluster.
+4. **`outputs/EXPERIMENTS.md`**: thí nghiệm bổ sung (chỉ Logistic Regression): so sánh 11 cách tiền xử lý và leave-one-source-out. **Đọc mục 0 trước**: tiền tố `www.` là dấu vết thu thập dữ liệu và là nguyên nhân cụ thể khiến model sụp trên Hassan.
 
 ### Bước 2: Hình (≈5 phút), trong `outputs/figures/`
 - `confusion_internal_full.png` / `confusion_hassan_full.png`: model trên test nội bộ so với dữ liệu ngoài.
 - `internal_vs_external_gap.png`: khoảng rơi từ 90% xuống 44%.
 - `source_bias.png`: accuracy theo nguồn dữ liệu; nguồn tranco (benign toàn cầu) kém nhất.
+- `preprocessing_ablation.png`: macro-F1 trên val / test / Hassan của từng cách tiền xử lý.
+- `leave_one_source_out.png`: accuracy trên một nguồn khi nguồn đó có trong train và khi bị loại khỏi train.
 - `pca_scree.png`, `cluster_pca_scatter.png`: RQ3 và RQ4.
 
 ### Bước 3: Dữ liệu (≈10 phút)
@@ -40,13 +43,14 @@ Câu hỏi chính của repo **không phải** "đạt accuracy bao nhiêu" mà 
 6. **`data/phishvn/docs/datasheet.md`**: cách gán nhãn, độ đồng thuận giữa người gán (κ), tỷ lệ nhiễu nhãn.
 7. `outputs/feature_audit.csv`: cột nào được dùng để train, cột nào bị loại và lý do.
 
-### Bước 4: Code (≈30 phút). Chỉ có 6 file, đọc theo thứ tự:
+### Bước 4: Code (≈30 phút). Chỉ có 7 file, đọc theo thứ tự:
 1. `src/phishing_ml/features.py`: trích 21 feature từ chuỗi URL.
 2. `src/phishing_ml/pipeline.py`: **đọc hàm `run_pipeline` ở cuối file trước**. Nó gọi lần lượt từng bước, rồi bạn nhảy vào từng hàm (xem mục 4).
 3. `src/phishing_ml/evaluate.py`: cách tính metric và CI.
 4. `src/phishing_ml/preprocess.py`: pipeline imputer → scaler → model.
 5. `src/phishing_ml/cli.py`: entry point, chỉ khoảng 30 dòng.
 6. `src/phishing_ml/download.py`: tải dữ liệu ngoài (Hassan, JPCERT).
+7. `src/phishing_ml/experiments.py`: thí nghiệm bổ sung. `build_variants()` liệt kê 11 cách tiền xử lý; thống kê nằm ở `mcnemar_exact`, `paired_bootstrap_macro_f1_diff`.
 
 ### Bước 5: Test (≈5 phút)
 `tests/`: file ngắn, cho biết repo cam kết những gì: không leakage khi tiền xử lý, feature khớp đúng dataset, CI chính xác, grid model ổn định.
@@ -73,6 +77,7 @@ Project/
 │   ├── features.py             ← trích 21 feature lexical (khớp đúng schema PhishVN)
 │   ├── evaluate.py             ← metrics + Clopper–Pearson CI
 │   ├── download.py             ← tải Hassan + JPCERT vào data/external/
+│   ├── experiments.py          ← thí nghiệm bổ sung: tiền xử lý + leave-one-source-out (LogReg)
 │   └── preprocess.py           ← sklearn Pipeline (chỉ fit trên train)
 ├── tests/
 ├── data/                       ← (CSV bị gitignore)
@@ -83,6 +88,8 @@ Project/
 │   ├── feature_audit.csv, quick_val_*.csv, classification_metrics.csv, external_metrics.csv
 │   ├── test_by_{source,tier,scenario,urlslice}_*.csv
 │   ├── pca_results.csv, clustering_results.csv, frozen_models.json
+│   ├── EXPERIMENTS.md, preprocessing_ablation.csv, leave_one_source_out.csv,
+│   │   tfidf_top_ngrams.csv, www_prefix_rates.csv
 │   └── figures/
 └── archive/phiusiil/           ← pipeline cũ trên PhiUSIIL (benchmark phản diện, không thuộc đề tài chính)
 ```
@@ -103,6 +110,7 @@ Project/
 | 6 | `run_pca_cluster` | PCA chỉ fit trên train (RQ3); K-Means/GMM trên PCA(10) (RQ4). Bỏ qua khi `--mode quick` | `pca_results.csv`, `clustering_results.csv` |
 | 7 | `run_figures` | Vẽ hình | `figures/*.png` |
 | 8 | `write_reports` | Sinh báo cáo từ các CSV ở trên | `DECISION.md`, `QUICK_RESULTS.md` |
+| 9 | `run_supplementary` → `experiments.py` | Thí nghiệm bổ sung chỉ dùng LogReg (xem mục 6). Bỏ qua khi `--mode quick` | `EXPERIMENTS.md` + 4 CSV + 2 hình |
 
 Hàm phụ đáng biết: `grids()` (danh sách model + siêu tham số), `norm_key()` (chuẩn hóa URL để ghép bảng), `_slice_frame()` (metric cho từng slice, kèm `tiny_n_flag`).
 
@@ -110,7 +118,7 @@ Hàm phụ đáng biết: `grids()` (danh sách model + siêu tham số), `norm_
 
 ## 5. Cài đặt và chạy
 
-Yêu cầu: Python ≥ 3.11, chỉ cần CPU. Chạy hết pipeline mất khoảng 30–60 giây.
+Yêu cầu: Python ≥ 3.11, chỉ cần CPU. `run --mode quick` mất khoảng 30–60 giây; `run` đầy đủ mất khoảng 6 phút, phần lớn cho thí nghiệm bổ sung (TF-IDF trên 340k URL Hassan).
 
 ```bash
 python -m venv .venv
@@ -128,8 +136,9 @@ pip install -e ".[dev]"
 
 ### 5.2 Chạy
 ```bash
-python -m phishing_ml.cli run               # đầy đủ (gồm PCA + clustering)
-python -m phishing_ml.cli run --mode quick  # bỏ PCA/clustering
+python -m phishing_ml.cli run               # đầy đủ (gồm PCA + clustering + thí nghiệm bổ sung)
+python -m phishing_ml.cli run --mode quick  # bỏ PCA/clustering và thí nghiệm bổ sung
+python -m phishing_ml.cli experiments       # chỉ chạy thí nghiệm bổ sung (≈4–5 phút)
 ```
 Mọi kết quả được ghi đè vào `outputs/`. Pipeline tất định (seed 42), nên chạy lại sẽ ra cùng số liệu (chỉ cột thời gian `fit_s` thay đổi). Nếu thiếu dữ liệu, lệnh sẽ in `BLOCKED` kèm danh sách file thiếu.
 
@@ -166,6 +175,22 @@ ruff check .
 - Slice có `tiny_n_flag=True` (n < 30) thì **không diễn giải**.
 - JPCERT chỉ có phishing nên chỉ báo `recall_phishonly`. Nó **không đo được false positive**, mà false positive lại chính là chỗ model hỏng.
 
+### Thí nghiệm bổ sung (`experiments.py`, chỉ Logistic Regression C=10, tập FULL)
+Chạy **sau** benchmark chính và trình bày như một thí nghiệm thứ hai: chọn trên val, test và dữ liệu ngoài chỉ để chấm, không thay model chính.
+- **So sánh tiền xử lý** (11 biến thể): StandardScaler (baseline), log1p, QuantileTransformer, `class_weight=balanced`, ngưỡng chọn trên val, TF-IDF n-gram ký tự (2–5) trên chuỗi URL, TF-IDF + feature số, và các bản **bỏ tiền tố `www.`** (`*_nowww`). Thống kê so với baseline trên test: **McNemar chính xác** và **CI bootstrap ghép cặp** (1000 lần) cho Δ macro-F1.
+- **Leave-one-source-out**: mỗi nguồn PhishVN chỉ có một nhãn. Gom thành 5 họ nguồn, bỏ từng họ khỏi train rồi đo trên val+test của chính họ đó.
+
+Kết quả chính:
+
+| Phát hiện | Số liệu |
+|---|---|
+| `www.` là dấu vết thu thập | Train PhishVN: benign **0.6%** có `www.`, phishing **45.7%**. Hassan: URL hợp lệ **72%** có `www.` |
+| TF-IDF n-gram mạnh nhất trong nội bộ | Test macro-F1 0.898 → **0.938** (Δ +0.040 [+0.033, +0.046], McNemar p ≈ 1e-28) |
+| Bỏ `www.` làm điểm nội bộ giảm nhưng tổng quát hóa tăng | `url_tfidf` → `url_tfidf_nowww`: Hassan specificity 0.22 → **0.45**, macro-F1 0.46 → **0.58** (tốt nhất trong các biến thể) |
+| Đổi cách scale không giúp gì | log1p: Δ ≈ 0 (p=0.41); QuantileTransformer: kém hơn (Δ −0.015, p ≈ 2e-19) |
+| `class_weight` chỉ dịch ngưỡng | Chọn lại ngưỡng trên val thì bằng baseline |
+| Model phụ thuộc nguồn | Benign từ nguồn chưa thấy chỉ nhận đúng 7–23%; bỏ `www.` thì recall chongluadao (khi bị loại khỏi train) rơi 0.62 → 0.28 |
+
 ---
 
 ## 7. Trả lời các câu hỏi nghiên cứu
@@ -173,11 +198,11 @@ ruff check .
 | RQ | Câu hỏi | Kết quả |
 |---|---|---|
 | **RQ1** | So sánh LogReg / RF / LinearSVC trên cùng split | LogReg C=10 tốt nhất trên val (F1 0.9215) → test F1 **0.9194**, acc **0.9026** |
-| **RQ2** | Hiệu năng khi gặp nguồn/tier/dữ liệu chưa thấy | Nguồn tranco chỉ đạt 0.297, tier silver 0.601; Hassan **0.439** (−46.3pp). Model học quy tắc kiểu ".vn/tổ chức tin cậy = benign" |
+| **RQ2** | Hiệu năng khi gặp nguồn/tier/dữ liệu chưa thấy | Nguồn tranco chỉ đạt 0.297, tier silver 0.601; Hassan **0.439** (−46.3pp). Nguyên nhân đo được: `www.` (benign PhishVN 0.6% so với Hassan 72%) và chữ ký nguồn (leave-one-source-out: benign từ nguồn chưa thấy chỉ đúng 7–23%). Xem `EXPERIMENTS.md` |
 | **RQ3** | PCA ảnh hưởng thế nào | Giảm hiệu năng: var90 (8 PCs) acc 0.773 / F1 0.863 so với 0.871 / 0.921 khi không dùng PCA. Nên giữ đủ feature |
 | **RQ4** | K-Means/GMM có cụm khớp nhãn không | Không: ARI ≈ 0 với k=2, tốt nhất 0.209 (GMM diag k=4). Chỉ mang tính mô tả |
 
-Kết quả âm (PCA làm giảm hiệu năng, cluster không khớp nhãn, sụp trên dữ liệu ngoài) **là kết quả đáng báo cáo**, không phải lỗi.
+Kết quả âm (PCA làm giảm hiệu năng, cluster không khớp nhãn, sụp trên dữ liệu ngoài, scale không giúp gì) **là kết quả đáng báo cáo**, không phải lỗi.
 
 ---
 

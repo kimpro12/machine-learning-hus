@@ -678,7 +678,21 @@ def missing_inputs() -> list[str]:
     return miss
 
 
-def run_pipeline(mode: str = 'full') -> int:
+def run_supplementary(vv: pd.DataFrame | None = None) -> int:
+    """Post-hoc LogReg experiments: preprocessing ablation + leave-one-source-out."""
+    from .experiments import run_experiments
+    if vv is None:
+        if _blocked():
+            return 2
+        vv = load_frames()
+    print('[phishvn] supplementary experiments (preprocessing ablation + LOSO)...', flush=True)
+    t0 = time.time()
+    run_experiments(vv, OUT, FIG, HASSAN_CSV, load_jpcert_urls())
+    print(f'[phishvn] supplementary DONE in {time.time() - t0:.1f}s -> outputs/EXPERIMENTS.md', flush=True)
+    return 0
+
+
+def _blocked() -> bool:
     miss = missing_inputs()
     if miss:
         print('BLOCKED: missing input files:')
@@ -686,6 +700,11 @@ def run_pipeline(mode: str = 'full') -> int:
             print(f'  {m}')
         print('PhishVN: download from Mendeley DOI 10.17632/b97hxbxtpd.4 and extract into data/phishvn/.')
         print('Hassan + JPCERT: python -m phishing_ml.cli fetch-external')
+    return bool(miss)
+
+
+def run_pipeline(mode: str = 'full') -> int:
+    if _blocked():
         return 2
     OUT.mkdir(parents=True, exist_ok=True)
     FIG.mkdir(parents=True, exist_ok=True)
@@ -713,5 +732,7 @@ def run_pipeline(mode: str = 'full') -> int:
     run_figures()
     print('[phishvn] reports...', flush=True)
     write_reports(audit, fin, ext)
+    if mode == 'full':
+        run_supplementary(vv)
     print(f'[phishvn] DONE in {time.time() - t0:.1f}s -> outputs/', flush=True)
     return 0

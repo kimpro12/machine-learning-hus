@@ -1,0 +1,13 @@
+dataset,group,n,www_rate
+phishvn_train,benign,11004,0.0062704471101417665
+phishvn_train,phishing,25905,0.45728623817795794
+phishvn_train_source,chongluadao,23621,0.49324753397400617
+phishvn_train_source,openphish,208,0.19230769230769232
+phishvn_train_source,tinnhiem_org,1659,0.037371910789632305
+phishvn_train_source,tinnhiem_web,3362,0.00148720999405116
+phishvn_train_source,tinnhiemmang,2076,0.07466281310211946
+phishvn_train_source,tranco,4170,0.00047961630695443646
+phishvn_train_source,tranco_vn,1813,0.0
+hassan,benign,170000,0.7199941176470588
+hassan,phishing,170000,0.27799411764705884
+jpcert,phishing,14775,0.08284263959390863
