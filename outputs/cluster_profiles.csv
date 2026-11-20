@@ -1,0 +1,7 @@
+cluster,n,share,pct_phishing,top_source,top_source_share,www_rate,vn_rate,median_url_len,median_dom_len,median_subdom_cnt,median_tld_len,median_digit_cnt,median_dash_cnt,median_path_len,median_query_len,median_entropy,description
+1,15380,0.41670053374515703,0.6392717815344603,chongluadao,0.5907672301690507,0.5282834850455137,0.3560468140442133,19.0,14.0,1.0,3.0,0.0,0.0,0.0,0.0,3.447401504705915,"có `www.`, chỉ domain"
+0,13241,0.3587471890324853,0.6147571935654407,chongluadao,0.5281323162903104,0.000528660977267578,0.12778491050524884,13.0,13.0,0.0,3.0,0.0,0.0,0.0,0.0,3.2516291673878226,"không `www.`, chỉ domain"
+3,8154,0.22092172640819313,0.9574441991660535,chongluadao,0.9249448123620309,0.4614912926171204,0.016801569781702233,12.0,10.0,0.0,3.0,3.0,0.0,0.0,0.0,3.1219280948873624,"không phải .vn, chỉ domain, nhiều chữ số"
+2,102,0.0027635536048118345,0.9215686274509803,openphish,0.8333333333333334,0.06862745098039216,0.049019607843137254,38.5,9.0,1.0,2.0,1.0,0.0,12.0,0.0,4.061729531167302,"không `www.`, không phải .vn, có đường dẫn, URL dài"
+5,27,0.000731528895391368,1.0,openphish,1.0,0.2962962962962963,0.0,35.0,12.0,1.0,3.0,5.0,1.0,0.0,3.0,4.19438848899739,"không phải .vn, chỉ domain, có tham số truy vấn, nhiều chữ số, nhiều dấu gạch ngang, URL dài"
+4,5,0.00013546831396136445,1.0,openphish,1.0,1.0,0.0,154.0,13.0,1.0,6.0,62.0,2.0,34.0,101.0,4.906804890818702,"có `www.`, không phải .vn, có đường dẫn, có tham số truy vấn, nhiều chữ số, nhiều dấu gạch ngang, URL dài"

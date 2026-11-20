@@ -3,6 +3,7 @@
     python -m phishing_ml.cli fetch-external        # download Hassan + JPCERT external sets
     python -m phishing_ml.cli run [--mode quick]    # full experiment pipeline -> outputs/
     python -m phishing_ml.cli experiments           # only the LogReg preprocessing ablation + LOSO
+    python -m phishing_ml.cli analysis              # only the data analysis (EDA, selection, PCA, clustering)
 """
 from __future__ import annotations
 
@@ -10,19 +11,22 @@ import argparse
 import sys
 
 from phishing_ml.download import fetch_external
-from phishing_ml.pipeline import ROOT, run_pipeline, run_supplementary
+from phishing_ml.pipeline import ROOT, run_data_analysis, run_pipeline, run_supplementary
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(prog="phishing_ml")
     sub = ap.add_subparsers(dest="cmd", required=True)
     p = sub.add_parser("run", help="audit -> val selection -> test (once) -> external -> PCA/cluster -> reports")
-    p.add_argument("--mode", default="full", choices=["quick", "full"], help="quick skips PCA/clustering + supplementary experiments")
+    p.add_argument("--mode", default="full", choices=["quick", "full"], help="quick skips PCA/clustering, data analysis and supplementary experiments")
+    sub.add_parser("analysis", help="only the data analysis: EDA, feature selection, PCA, clustering, t-SNE")
     sub.add_parser("experiments", help="only the LogReg preprocessing ablation + leave-one-source-out")
     sub.add_parser("fetch-external", help="download Hassan + JPCERT external evaluation sets into data/external/")
     args = ap.parse_args()
     if args.cmd == "fetch-external":
         sys.exit(fetch_external(ROOT / "data" / "external"))
+    if args.cmd == "analysis":
+        sys.exit(run_data_analysis())
     if args.cmd == "experiments":
         sys.exit(run_supplementary())
     sys.exit(run_pipeline(mode=args.mode))

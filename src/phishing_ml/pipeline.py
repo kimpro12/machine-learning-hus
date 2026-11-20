@@ -692,6 +692,21 @@ def run_supplementary(vv: pd.DataFrame | None = None) -> int:
     return 0
 
 
+def run_data_analysis(vv: pd.DataFrame | None = None) -> int:
+    """EDA, feature ranking/selection, PCA, clustering, t-SNE on train -> outputs/DATA_ANALYSIS.md."""
+    from .analysis import run_analysis
+    if vv is None:
+        if _blocked():
+            return 2
+        vv = load_frames()
+    print('[phishvn] data analysis (EDA, feature selection, PCA, clustering, t-SNE)...', flush=True)
+    t0 = time.time()
+    OUT.mkdir(parents=True, exist_ok=True)
+    run_analysis(vv, OUT, FIG)
+    print(f'[phishvn] data analysis DONE in {time.time() - t0:.1f}s -> outputs/DATA_ANALYSIS.md', flush=True)
+    return 0
+
+
 def _blocked() -> bool:
     miss = missing_inputs()
     if miss:
@@ -733,6 +748,7 @@ def run_pipeline(mode: str = 'full') -> int:
     print('[phishvn] reports...', flush=True)
     write_reports(audit, fin, ext)
     if mode == 'full':
+        run_data_analysis(vv)
         run_supplementary(vv)
     print(f'[phishvn] DONE in {time.time() - t0:.1f}s -> outputs/', flush=True)
     return 0

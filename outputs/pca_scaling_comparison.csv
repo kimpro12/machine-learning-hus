@@ -1,0 +1,4 @@
+preprocessing,pc1_var,pc2_var,n_for_90pct,n_for_95pct,pc1_top_features
+raw (no scaling),0.8164647877539637,0.09205558390906221,2,3,"url_len (+0.69), letter_cnt (+0.64), dom_len (+0.31)"
+StandardScaler,0.2855349961929387,0.21434319092705403,8,10,"url_len (+0.38), special_cnt (+0.35), letter_cnt (+0.34)"
+log1p + StandardScaler,0.2736714520821749,0.20838345340517775,7,9,"letter_cnt (+0.39), url_len (+0.39), special_cnt (+0.33)"

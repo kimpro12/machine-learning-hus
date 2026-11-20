@@ -1,6 +1,6 @@
 """Supplementary experiments (Logistic Regression only, FULL subset).
 
-E-PREP  Preprocessing ablation: 8 variants of the same LogReg (C=10).
+E-PREP  Preprocessing ablation: 21 variants of the same LogReg (C=10).
         Train on train, report val (selection) + official test + Hassan + JPCERT.
         Thresholds, when tuned, are tuned on val only and frozen before test.
         Statistics vs the baseline on test: exact McNemar p-value and a paired
@@ -28,10 +28,15 @@ from sklearn.impute import SimpleImputer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, roc_auc_score
 from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import FunctionTransformer, QuantileTransformer, StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.feature_selection import SelectKBest, mutual_info_classif
+from sklearn.preprocessing import (
+    FunctionTransformer, KBinsDiscretizer, PolynomialFeatures, QuantileTransformer, StandardScaler,
+)
 
 from .evaluate import clopper_pearson_ci
 from .features import PHISHVN_FEATURES as FEATS, phishvn_features, strip_scheme
+from .transformers import CorrelationFilter, KMeansOneHot, Winsorizer, resample_indices
 
 SEED = 42
 N_BOOT = 1000
@@ -98,6 +103,40 @@ def build_variants() -> list[dict]:
              make=lambda: Pipeline([('tfidf', _tfidf()), ('clf', _logreg())]), x='url', thr='fixed', nowww=True),
         dict(name='url_tfidf+num_log1p_nowww', desc="char TF-IDF + numeric (log1p), both on www-normalised URLs",
              make=lambda: Pipeline([('features', both()), ('clf', _logreg())]), x='both', thr='fixed', nowww=True),
+        # ---- classic data-processing techniques on the 21 numeric features ----
+        dict(name='num_winsorize', desc='outlier handling: clip every feature to its train 1st-99th percentile, then scale',
+             make=lambda: Pipeline(_num(('clip', Winsorizer(0.01, 0.99)), ('scale', StandardScaler()), ('clf', _logreg()))),
+             x='num', thr='fixed', group='outliers'),
+        dict(name='num_kbins_onehot', desc='discretisation: 10 quantile bins per feature, one-hot encoded (lets a linear model bend)',
+             make=lambda: Pipeline(_num(('bins', KBinsDiscretizer(n_bins=10, encode='onehot', strategy='quantile')),
+                                        ('clf', _logreg()))), x='num', thr='fixed', group='feature construction'),
+        dict(name='num_poly2', desc='feature construction: all degree-2 products of the scaled features (21 -> 252)',
+             make=lambda: Pipeline(_num(('scale', StandardScaler()), ('poly', PolynomialFeatures(2, include_bias=False)),
+                                        ('scale2', StandardScaler()), ('clf', _logreg()))), x='num', thr='fixed',
+             group='feature construction'),
+        dict(name='num_corr_filter', desc='feature selection: drop features with |r| > 0.9 to an earlier one (train), then scale',
+             make=lambda: Pipeline(_num(('corr', CorrelationFilter(0.9)), ('scale', StandardScaler()), ('clf', _logreg()))),
+             x='num', thr='fixed', group='feature selection'),
+        dict(name='num_selectk_mi10', desc='feature selection: keep the 10 features with highest mutual information (train)',
+             make=lambda: Pipeline(_num(('scale', StandardScaler()),
+                                        ('select', SelectKBest(lambda X, y: mutual_info_classif(X, y, random_state=SEED), k=10)),
+                                        ('clf', _logreg()))), x='num', thr='fixed', group='feature selection'),
+        dict(name='num_l1', desc='embedded feature selection: L1-penalised LogReg (C=0.05) zeroes out weak features',
+             make=lambda: Pipeline(_num(('scale', StandardScaler()),
+                                        ('clf', LogisticRegression(penalty='l1', C=0.05, solver='liblinear', max_iter=3000)))),
+             x='num', thr='fixed', group='feature selection'),
+        dict(name='num_pca95', desc='dimensionality reduction: PCA keeping 95% of variance (fit on train), then LogReg',
+             make=lambda: Pipeline(_num(('scale', StandardScaler()), ('pca', PCA(n_components=0.95, random_state=SEED)),
+                                        ('clf', _logreg()))), x='num', thr='fixed', group='dimensionality reduction'),
+        dict(name='num_undersample', desc='imbalance: randomly drop phishing rows in train to a 50/50 balance',
+             make=lambda: Pipeline(_num(('scale', StandardScaler()), ('clf', _logreg()))),
+             x='num', thr='fixed', resample='under', group='class imbalance'),
+        dict(name='num_oversample', desc='imbalance: randomly duplicate benign rows in train to a 50/50 balance',
+             make=lambda: Pipeline(_num(('scale', StandardScaler()), ('clf', _logreg()))),
+             x='num', thr='fixed', resample='over', group='class imbalance'),
+        dict(name='num_kmeans_onehot', desc='clustering as a feature: append one-hot K-Means (k=8, fit on train) cluster id',
+             make=lambda: Pipeline(_num(('scale', StandardScaler()), ('kmeans', KMeansOneHot(8, SEED)), ('clf', _logreg()))),
+             x='num', thr='fixed', group='clustering as feature'),
     ]
 
 
@@ -237,14 +276,15 @@ def run_preprocessing_ablation(vv: pd.DataFrame, externals: dict) -> pd.DataFram
     rows, test_preds, top_ngrams = [], {}, pd.DataFrame()
     for v in build_variants():
         pipe = v['make']()
+        fit_rows = resample_indices(ytr, v['resample'], SEED) if v.get('resample') else np.arange(len(tr))
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            pipe.fit(make_x(tr, v), ytr)
+            pipe.fit(make_x(tr.iloc[fit_rows], v), ytr[fit_rows])
         s_va = pipe.predict_proba(make_x(va, v))[:, 1]
         thr = best_f1_threshold(yva, s_va) if v['thr'] == 'val' else 0.5
         s_te = pipe.predict_proba(make_x(te, v))[:, 1]
         test_preds[v['name']] = (s_te >= thr).astype(int)
-        row = {'variant': v['name'], 'description': v['desc'], 'threshold': thr}
+        row = {'variant': v['name'], 'group': v.get('group', ''), 'description': v['desc'], 'threshold': thr}
         row.update({f'val_{k}': x for k, x in metrics(yva, s_va, thr).items()})
         row.update({f'test_{k}': x for k, x in metrics(yte, s_te, thr).items()})
         if 'hassan' in externals:
@@ -322,7 +362,7 @@ def plot_experiments(prep: pd.DataFrame, loso: pd.DataFrame, fig_dir: Path) -> N
     cols = [c for c in ('val_macro_f1', 'test_macro_f1', 'hassan_macro_f1') if c in prep]
     x = np.arange(len(prep))
     w = 0.8 / len(cols)
-    fig, ax = plt.subplots(figsize=(11, 4.5))
+    fig, ax = plt.subplots(figsize=(max(11, 0.7 * len(prep)), 4.8))
     for i, c in enumerate(cols):
         ax.bar(x + (i - (len(cols) - 1) / 2) * w, prep[c], w, label=c.replace('_macro_f1', ''))
     ax.set_xticks(x)
@@ -446,6 +486,36 @@ def write_report(prep: pd.DataFrame, loso: pd.DataFrame, ngrams: pd.DataFrame, s
         if flat:
             nw_text += (f" Ngược lại {', '.join(f'`{n}`' for n in flat)} gần như không đổi (Δ specificity < 0.02): "
                         "các feature số còn chứa lối tắt khác (độ dài domain, số subdomain, đuôi domain…) mà việc bỏ `www.` không gỡ được.")
+    classic = prep[prep['group'].fillna('') != ''] if 'group' in prep else prep.iloc[0:0]
+    cl_lines = ['| Nhóm kỹ thuật | Biến thể | Làm gì | Val macro-F1 | Test macro-F1 | Δ test vs baseline [CI95] | McNemar p |'
+                + (' Hassan macro-F1 |' if has_h else ''),
+                '|---|---|---|---|---|---|---|' + ('---|' if has_h else '')]
+    for _, r in classic.iterrows():
+        cl_lines.append(f"| {r['group']} | `{r['variant']}` | {r['description']} | {_f(r['val_macro_f1'])} | {_f(r['test_macro_f1'])} | "
+                        f"{r['test_dmacro_f1']:+.4f} [{r['test_dmacro_f1_lo']:+.4f}, {r['test_dmacro_f1_hi']:+.4f}] | {r['mcnemar_p']:.2g} |"
+                        + (f" {_f(r['hassan_macro_f1'])} |" if has_h else ''))
+    if len(classic):
+        better = classic[(classic['test_dmacro_f1_lo'] > 0)]
+        worse = classic[(classic['test_dmacro_f1_hi'] < 0)]
+        same = classic[(classic['test_dmacro_f1_lo'] <= 0) & (classic['test_dmacro_f1_hi'] >= 0)]
+        top_val = classic.loc[classic['val_macro_f1'].idxmax()]
+        lst = lambda d, mark=True: ', '.join(f"`{v}` ({x:+.4f}{'†' if mark and pv >= 0.05 else ''})"  # noqa: E731
+                                  for v, x, pv in zip(d['variant'], d['test_dmacro_f1'], d['mcnemar_p'])) or 'không có'
+        cl_text = chr(10).join([
+            f"- Tốt nhất theo val trong nhóm này: **`{top_val['variant']}`** (val macro-F1 {_f(top_val['val_macro_f1'])} "
+            f"so với baseline {_f(base['val_macro_f1'])}).",
+            f"- **Tốt hơn baseline có ý nghĩa** (cả khoảng tin cậy > 0): {lst(better)}.",
+            f"- **Không khác biệt** (khoảng tin cậy chứa 0): {lst(same, False)}.",
+            f"- **Kém hơn có ý nghĩa** (cả khoảng tin cậy < 0): {lst(worse)}.",
+            "- `†` = khoảng tin cậy bootstrap không chứa 0 nhưng McNemar p ≥ 0.05: hai kiểm định không đồng thuận, nên coi là "
+            "chênh lệch rất nhỏ, chưa chắc chắn.",
+        ])
+        if has_h:
+            hb = classic.loc[classic['hassan_macro_f1'].idxmax()]
+            cl_text += chr(10) + (f"- Trên Hassan, tốt nhất trong nhóm này là `{hb['variant']}` (macro-F1 {_f(hb['hassan_macro_f1'])} "
+                                  f"so với baseline {_f(base['hassan_macro_f1'])}).")
+    else:
+        cl_text = ''
     ls = loso.set_index(['variant', 'family'])
 
     def loso_cmp(fam: str) -> str:
@@ -506,6 +576,13 @@ Phía phishing bị chi phối bởi `www.` (mục 0) và các từ khóa lừa 
 {chr(10).join(nw_lines)}
 
 {nw_text}
+
+### 1d. Các kỹ thuật xử lý dữ liệu kinh điển trên 21 feature số
+Cùng LogReg C=10, mỗi dòng chỉ đổi **một** bước xử lý so với baseline (`num_standard`). Mọi tham số của bước xử lý (ngưỡng cắt, bin, tâm cụm, feature được chọn…) chỉ học trên train.
+
+{chr(10).join(cl_lines)}
+
+{cl_text}
 
 ## 2. Leave-one-source-out
 
