@@ -1,5 +1,5 @@
-"""phishing_ml package."""
-__version__ = "1.0.0"
-RANDOM_SEED = 42
-# Internal label convention: y=1 phishing, y=0 legitimate.
-# Original UCI label: label=0 phishing, label=1 legitimate.
+"""phishing_ml: PhishVN URL phishing detection (classification, PCA, clustering).
+
+Label convention (PhishVN): label=1 phishing, label=0 benign. Positive class = phishing.
+"""
+__version__ = "2.0.0"

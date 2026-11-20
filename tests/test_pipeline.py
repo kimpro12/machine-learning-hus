@@ -1,6 +1,6 @@
-"""Smoke tests for the in-repo pivot pipeline (src/phishing_ml/pivot_train.py)."""
+"""Smoke tests for the PhishVN pipeline (src/phishing_ml/pipeline.py)."""
 import numpy as np
-from phishing_ml.pivot_train import grids, norm_key, _slice_frame, _mrow
+from phishing_ml.pipeline import grids, norm_key, _slice_frame, _mrow
 
 
 def test_norm_key():

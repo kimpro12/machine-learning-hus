@@ -1,6 +1,6 @@
 """Tests for exact Clopper-Pearson CI (src/phishing_ml/evaluate.py)."""
 import math
-from phishing_ml.evaluate import clopper_pearson_ci, bootstrap_ci
+from phishing_ml.evaluate import clopper_pearson_ci
 
 
 def test_perfect_accuracy_rule_of_three():
@@ -26,11 +26,3 @@ def test_middle_matches_scipy():
 def test_empty():
     lo, hi = clopper_pearson_ci(0, 0)
     assert math.isnan(lo) and math.isnan(hi)
-
-
-def test_bootstrap_flags_degenerate_perfect():
-    out = bootstrap_ci([1] * 20 + [0] * 20, [1] * 20 + [0] * 20, n_boot=50, seed=42)
-    assert out['acc_ci95'] == (1.0, 1.0)  # percentile degenerate...
-    assert out['acc_exact_ci95'][1] == 1.0
-    assert out['acc_exact_ci95'][0] < 1.0  # ...exact CI is not
-    assert 'degenerate' in out.get('acc_ci95_note', '')

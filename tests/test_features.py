@@ -1,12 +1,11 @@
-"""Tests for PhishVN-compatible lexical extractor (src/phishing_ml/pivot.py)."""
+"""Tests for PhishVN-compatible lexical extractor (src/phishing_ml/features.py)."""
 import math
-from phishing_ml.pivot import phishvn_features, PHISHVN_FEATURES, PHISHVN_NUMERIC_20
+from phishing_ml.features import phishvn_features, PHISHVN_FEATURES
 
 
 def test_feature_count_and_no_https():
     assert len(PHISHVN_FEATURES) == 21
     assert 'is_https' not in PHISHVN_FEATURES
-    assert PHISHVN_NUMERIC_20 == PHISHVN_FEATURES  # backward-compat alias
 
 
 def test_scheme_stripped_basis():

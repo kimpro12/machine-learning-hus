@@ -1,6 +1,6 @@
 """PhishVN-compatible lexical feature extractor (scheme-stripped, CompPhish-aligned).
 
-Rules replicate data/pivot/docs/schema.md + the released vn_compphish.csv values:
+Rules replicate data/phishvn/docs/schema.md + the released vn_compphish.csv values:
 - All length/count/entropy features are computed on the SCHEME-STRIPPED URL.
 - `is_https` is a collection artefact (kept in the CSV for CompPhish compatibility)
   and is EXCLUDED from modelling — it is not part of PHISHVN_FEATURES.
@@ -26,8 +26,6 @@ PHISHVN_FEATURES = [
  'special_cnt','eq_cnt','qm_cnt','amp_cnt','dot_cnt','dash_cnt','under_cnt',
  'letter_ratio','digit_ratio','spec_ratio','slash_cnt','entropy','path_len','query_len',
 ]
-# Backward-compatible alias (old name miscounted: the list has 21 items).
-PHISHVN_NUMERIC_20 = PHISHVN_FEATURES
 
 # Vietnamese 2nd-level suffixes treated as 2-level TLDs by the dataset snapshot.
 KNOWN_VN_2LD = frozenset(['biz.vn','com.vn','edu.vn','gov.vn','info.vn','net.vn','org.vn','pro.vn'])

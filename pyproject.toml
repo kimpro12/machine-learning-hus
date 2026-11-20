@@ -1,7 +1,7 @@
 [project]
 name = "phishing-ml"
-version = "1.0.0"
-description = "PhiUSIIL phishing detection: classification, PCA, clustering with leakage audit"
+version = "2.0.0"
+description = "PhishVN URL phishing detection: classification, PCA, clustering with leakage-controlled evaluation"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -10,11 +10,9 @@ dependencies = [
   "scipy==1.17.0",
   "scikit-learn==1.6.1",
   "matplotlib==3.10.0",
-  "seaborn==0.13.2",
-  "PyYAML==6.0.2",
   "joblib==1.4.2",
-  "ucimlrepo==0.0.7",
   "tldextract==5.1.2",
+  "pyarrow==21.0.0",
 ]
 
 [project.optional-dependencies]
@@ -29,6 +27,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["archive"]
 
 [tool.ruff]
 target-version = "py311"

@@ -1,72 +1,62 @@
-# Phát hiện URL phishing bằng Học máy: phân loại, PCA, phân cụm
+# Phát hiện URL phishing bằng Học máy: phân loại, PCA, phân cụm (PhishVN)
 
-Đồ án môn Học máy. Câu hỏi chính của repo **không phải** "đạt accuracy bao nhiêu" mà là:
+Đồ án môn Học máy, dùng dataset **PhishVN v3.1.0**: URL phishing tiếng Việt có gắn thời gian, Mendeley DOI [`10.17632/b97hxbxtpd.4`](https://doi.org/10.17632/b97hxbxtpd.4), giấy phép CC BY 4.0.
 
-> Con số accuracy đo được có đúng không? Dataset có đáng tin để làm đề tài không?
+Câu hỏi chính của repo **không phải** "đạt accuracy bao nhiêu" mà là:
 
-Repo có **hai pipeline** chạy trên hai dataset, và kết luận nằm ở chỗ so sánh hai cái:
+> Con số accuracy đo được có đúng không? Model học được gì, và hỏng ở đâu?
 
-| | PhiUSIIL (UCI 967) | PhishVN v3.1.0 |
-|---|---|---|
-| Vai trò | **Ví dụ phản diện** (negative benchmark): ví dụ về leakage và collection bias | **Dataset chính** của đồ án |
-| Accuracy nội bộ | 99–100% (là ảo, do leakage và bias) | ~90% (temporal split sạch) |
-| Trên dữ liệu ngoài (Hassan 340k) | 50.0%, ngang đoán bừa | 43.9%, vẫn sụp ở lớp benign |
-| Kết luận | `KEEP_AS_BIAS_STUDY`: chỉ giữ để minh họa leakage | `ADOPT`: dùng cho đồ án, **không** tuyên bố dùng được ngoài đời thực |
+| | Kết quả |
+|---|---|
+| Model tốt nhất | Logistic Regression (C=10), 21 feature lexical |
+| Test chính thức (temporal split, mở **một lần**) | **Acc 0.9026** (CI95 [0.896, 0.909]), **F1 phishing 0.9194**, ROC-AUC 0.958 |
+| Dữ liệu ngoài, Hassan 340k (model đóng băng) | Acc 0.439 (−46.3pp); lớp benign sụp, specificity 0.038 |
+| PCA | Làm giảm hiệu năng: 8 PCs (90% phương sai) acc 0.773 so với 0.871 khi không dùng PCA |
+| Phân cụm (K-Means/GMM) | Không có cụm khớp nhãn: ARI ≈ 0 với k=2, tốt nhất 0.209 |
+| Kết luận | Phù hợp làm benchmark cho đồ án; **chưa** kiểm chứng để triển khai thực tế |
 
-> ⚠️ **BENCHMARK_NOT_REAL_WORLD_VALIDATED**: không model nào trong repo được kiểm chứng để triển khai thực tế.
+> ⚠️ **BENCHMARK_NOT_REAL_WORLD_VALIDATED**: không model nào trong repo được kiểm chứng để dùng ngoài đời thực.
 
 ---
 
 ## 1. Người mới: đọc theo thứ tự này
 
-Đừng đọc code trước. Hãy đọc **kết quả → lý do → code**.
+Đọc **kết quả → dữ liệu → code**, đừng mở code trước.
 
-### Bước 1: Hiểu đề bài và luật chơi (≈15 phút)
+### Bước 1: Kết luận (≈15 phút)
 1. **`README.md`** (file này): bức tranh tổng.
-2. **`PHIUSIIL_AGENT_TECH_SPEC.md`**: spec gốc của dự án (tiếng Việt). Nên đọc kỹ:
-   - §0: các câu hỏi nghiên cứu RQ1–RQ4 và quy ước nhãn.
-   - §1: luật chống leakage (chỉ fit trên train, test chỉ mở một lần).
-   - §5–§7: các bộ feature, audit bias, cách chia dữ liệu.
-   - §10: chính sách GO / NO-GO.
-   - Các mục còn lại (§2–3, §13–16) là yêu cầu kỹ thuật, khi cần thì tra.
+2. **`outputs/DECISION.md`**: kết luận và lập luận: vì sao dataset phù hợp cho đồ án nhưng không dùng để triển khai được, lưu ý về GOLDSILVER. Đọc kỹ mục **"Vì sao macro-F1"**: nó giải thích vì sao **không chốt bằng accuracy**.
+3. **`outputs/QUICK_RESULTS.md`**: số liệu theo từng bước: audit → validation → test → slice bias → external → PCA/cluster.
 
-### Bước 2: Đọc kết luận (≈20 phút)
-3. **`outputs/pivot/DECISION.md`**: kết luận cho **PhishVN** (dataset chính). Đọc kỹ mục *"Vì sao macro-F1"* để hiểu vì sao không chốt bằng accuracy.
-4. **`outputs/pivot/QUICK_RESULTS.md`**: số liệu PhishVN theo từng bước: audit → val → test → slice → external → PCA/cluster.
-5. **`outputs/DECISION.md`**: kết luận cho **PhiUSIIL**: vì sao 100% là ảo, kết quả audit leakage, validation ngoài, subgroup.
-6. **`outputs/SUMMARY.md`**: tóm tắt ngắn quick benchmark của PhiUSIIL.
+### Bước 2: Hình (≈5 phút), trong `outputs/figures/`
+- `confusion_internal_full.png` / `confusion_hassan_full.png`: model trên test nội bộ so với dữ liệu ngoài.
+- `internal_vs_external_gap.png`: khoảng rơi từ 90% xuống 44%.
+- `source_bias.png`: accuracy theo nguồn dữ liệu; nguồn tranco (benign toàn cầu) kém nhất.
+- `pca_scree.png`, `cluster_pca_scatter.png`: RQ3 và RQ4.
 
-### Bước 3: Xem hình (≈10 phút)
-Xem các hình kể câu chuyện chính trước:
-- `outputs/figures/path_https_www_by_label.png`: collection bias của PhiUSIIL (legit 100% https + www + không có path).
-- `outputs/figures/single_feature_stump.png`: chỉ một feature `URLSimilarityIndex` đã đạt 99.7%, tức là lộ nhãn.
-- `outputs/figures/internal_vs_external_gap.png` và `external_subgroup_slices.png`: 100% → 50% khi gặp dữ liệu thật.
-- `outputs/pivot_figures/pivot_internal_vs_external_gap.png`, `pivot_source_bias.png`: cùng bệnh trên PhishVN nhưng nhẹ hơn.
-- `outputs/pivot_figures/pivot_pca_scree.png`, `pivot_cluster_pca_scatter.png`: PCA làm giảm hiệu năng, cluster không khớp nhãn.
+### Bước 3: Dữ liệu (≈10 phút)
+4. **`data/phishvn/README.md`**: thành phần dataset, các tier gold/silver/bronze, split chính thức.
+5. **`data/phishvn/docs/schema.md`**: ý nghĩa 22 cột feature, vì sao loại `is_https`.
+6. **`data/phishvn/docs/datasheet.md`**: cách gán nhãn, độ đồng thuận giữa người gán (κ), tỷ lệ nhiễu nhãn.
+7. `outputs/feature_audit.csv`: cột nào được dùng để train, cột nào bị loại và lý do.
 
-### Bước 4: Hiểu dữ liệu (≈10 phút)
-7. **`data/pivot/README.md`**, **`data/pivot/docs/datasheet.md`**, **`data/pivot/docs/schema.md`**: PhishVN gồm những gì, ý nghĩa các tier gold/silver/bronze, vì sao loại `is_https`.
-8. **`configs/feature_sets.yaml`**: danh sách feature nghi rò rỉ / proxy thu thập của PhiUSIIL.
-9. `outputs/audit/suspicious_features.md`, `outputs/audit/dedup_reconciliation.md`: chi tiết audit PhiUSIIL.
+### Bước 4: Code (≈30 phút). Chỉ có 5 file, đọc theo thứ tự:
+1. `src/phishing_ml/features.py`: trích 21 feature từ chuỗi URL.
+2. `src/phishing_ml/pipeline.py`: **đọc hàm `run_pipeline` ở cuối file trước**. Nó gọi lần lượt từng bước, rồi bạn nhảy vào từng hàm (xem mục 4).
+3. `src/phishing_ml/evaluate.py`: cách tính metric và CI.
+4. `src/phishing_ml/preprocess.py`: pipeline imputer → scaler → model.
+5. `src/phishing_ml/cli.py`: entry point, chỉ khoảng 20 dòng.
 
-### Bước 5: Đọc code (theo luồng dữ liệu, xem mục 4)
-- Muốn hiểu **PhishVN**: `pivot.py` → `pivot_train.py` (hàm `run_pivot` ở cuối file là entry point, đọc từ dưới lên).
-- Muốn hiểu **PhiUSIIL**: `cli.py` (bắt đầu từ `main()` và `cmd_run`) → `schema.py` → `url_features.py` → `split.py` → `audit.py` → `quick.py` → `evaluate.py` → `decision.py`.
-- Dùng chung: `evaluate.py` (metrics, CI), `preprocess.py` (pipeline chỉ fit trên train).
+### Bước 5: Test (≈5 phút)
+`tests/`: file ngắn, cho biết repo cam kết những gì: không leakage khi tiền xử lý, feature khớp đúng dataset, CI chính xác, grid model ổn định.
 
-### Bước 6: Đọc test để thấy các bất biến được kiểm tra
-`tests/test_split_no_leakage.py`, `test_preprocess_train_only.py`, `test_label_mapping.py`, `test_exact_ci.py`, `test_pivot.py`. Các file này ngắn (dưới 65 dòng) và là cách nhanh nhất để biết repo cam kết những gì.
+> Muốn biết vì sao **không** dùng dataset UCI PhiUSIIL (accuracy 100% nhưng là ảo)? Xem `archive/phiusiil/README.md`.
 
 ---
 
-## 2. Quy ước nhãn (quan trọng, dễ nhầm)
+## 2. Quy ước nhãn
 
-| Dataset | Nhãn gốc | Nhãn nội bộ dùng khi train |
-|---|---|---|
-| PhiUSIIL | `label=0` phishing, `label=1` legitimate (**ngược**) | `y=1` phishing, `y=0` legitimate (đổi trong `schema.recode_label`) |
-| PhishVN | `label=1` phishing, `label=0` benign | giữ nguyên |
-
-**Lớp dương (positive) luôn là phishing.** Mọi F1, precision, recall đều tính cho lớp phishing.
+PhishVN: **`label=1` phishing, `label=0` benign**. Lớp dương luôn là **phishing**: F1, precision, recall đều tính cho lớp phishing.
 
 ---
 
@@ -74,74 +64,51 @@ Xem các hình kể câu chuyện chính trước:
 
 ```text
 Project/
-├── README.md                       ← bạn đang ở đây
-├── PHIUSIIL_AGENT_TECH_SPEC.md     ← spec gốc (RQ, luật leakage, GO/NO-GO)
-├── pyproject.toml                  ← dependencies có pin version, cấu hình pytest/ruff
-├── configs/
-│   ├── quick.yaml                  ← seed, tỷ lệ split, lưới siêu tham số, ngưỡng quyết định
-│   ├── full.yaml                   ← như quick + PCA, clustering, split sensitivity
-│   └── feature_sets.yaml           ← SUSPECT_DERIVED / TEXT_META / COLLECTION_PROXY
-├── src/phishing_ml/                ← toàn bộ code (xem mục 4)
-├── tests/                          ← pytest, dùng dữ liệu tổng hợp
-├── data/                           ← (gitignored) dữ liệu
-│   ├── raw/                        ← CSV gốc PhiUSIIL
-│   ├── processed/                  ← clean.parquet, splits.pkl, feature_sets.json (sinh tự động)
-│   ├── external/                   ← Hassan 340k + JPCERT 2025 (chỉ dùng để đánh giá ngoài)
-│   └── pivot/                      ← bản phát hành PhishVN (CSV, splits, docs, MANIFEST)
-├── raw_dl/, phiusiil.zip           ← bản tải về dự phòng của PhiUSIIL
-└── outputs/                        ← (gitignored trừ *.md) mọi kết quả
-    ├── DECISION.md, SUMMARY.md, decision.json   ← kết luận PhiUSIIL
-    ├── audit/                      ← audit chất lượng dữ liệu và bias
-    ├── metrics/                    ← quick_validation, final_*_test, pca, clustering, ...
-    ├── external/                   ← PhiUSIIL-model trên Hassan/JPCERT + subgroup
-    ├── figures/                    ← hình PhiUSIIL
-    ├── manifests/                  ← hash dữ liệu, frozen_plan, test_evaluated (bằng chứng test chỉ mở 1 lần)
-    ├── models/                     ← model đã đóng băng (.joblib)
-    ├── pivot/                      ← toàn bộ kết quả PhishVN + DECISION.md, QUICK_RESULTS.md
-    └── pivot_figures/              ← hình PhishVN
+├── README.md
+├── pyproject.toml              ← dependencies có pin version, cấu hình pytest/ruff
+├── src/phishing_ml/
+│   ├── cli.py                  ← entry point: `run [--mode quick|full]`
+│   ├── pipeline.py             ← toàn bộ pipeline thực nghiệm
+│   ├── features.py             ← trích 21 feature lexical (khớp đúng schema PhishVN)
+│   ├── evaluate.py             ← metrics + Clopper–Pearson CI
+│   └── preprocess.py           ← sklearn Pipeline (chỉ fit trên train)
+├── tests/
+├── data/                       ← (CSV bị gitignore)
+│   ├── phishvn/                ← bản phát hành PhishVN: README, docs/, MANIFEST.txt, LICENSE, data/*.csv
+│   └── external/               ← Hassan 340k + JPCERT 2025 (chỉ để đánh giá ngoài)
+├── outputs/                    ← mọi kết quả (model .joblib bị gitignore)
+│   ├── DECISION.md, QUICK_RESULTS.md
+│   ├── feature_audit.csv, quick_val_*.csv, classification_metrics.csv, external_metrics.csv
+│   ├── test_by_{source,tier,scenario,urlslice}_*.csv
+│   ├── pca_results.csv, clustering_results.csv, frozen_models.json
+│   └── figures/
+└── archive/phiusiil/           ← pipeline cũ trên PhiUSIIL (benchmark phản diện, không thuộc đề tài chính)
 ```
 
 ---
 
-## 4. Bản đồ code: `src/phishing_ml/`
+## 4. Pipeline: `pipeline.py` theo từng bước
 
-### Dùng chung
-| File | Làm gì | Hàm chính |
-|---|---|---|
-| `cli.py` | Entry point duy nhất, gồm mọi lệnh `fetch/audit/quick/finalize/full/report/run/pivot` | `main`, `cmd_*`, `load_or_build_processed` |
-| `evaluate.py` | Metrics (acc, F1 phishing, ROC/PR-AUC, balanced acc), bootstrap CI, **Clopper–Pearson exact CI**, tune ngưỡng | `compute_metrics`, `bootstrap_ci`, `clopper_pearson_ci` |
-| `preprocess.py` | Pipeline sklearn (imputer + scaler) để **bảo đảm chỉ fit trên train** | `make_pipeline`, `get_xy` |
-| `models.py` | Sinh danh sách model + lưới siêu tham số từ config | `build_configs` |
+`run_pipeline(mode)` gọi các bước theo thứ tự sau:
 
-### Pipeline PhiUSIIL (bài học về leakage)
-| File | Làm gì |
-|---|---|
-| `fetch.py` | Tải ZIP từ UCI, giải nén, ghi SHA-256 vào manifest |
-| `schema.py` | Kiểm tra schema, đổi nhãn, định nghĩa `SUSPECT_DERIVED` (5 feature lộ nhãn) |
-| `url_features.py` | Tính lại 28 feature **chỉ từ chuỗi URL** (`STRICT_COLS`); `NO_CUES_COLS` = bỏ các proxy thu thập; chuẩn hóa URL, lấy eTLD+1 |
-| `split.py` | Khử trùng lặp, chia random stratified 64/16/20, chia **domain-disjoint** theo eTLD+1 |
-| `audit.py` | Audit bias: tỷ lệ https/www/path theo nhãn, decision stump một feature, tương quan |
-| `quick.py` | Quick benchmark: train → val cho 4 feature set × các model; đo gap random vs domain |
-| `robustness.py` | Hình random vs domain, độ nhạy theo tỷ lệ split và seed |
-| `pca_experiment.py` | RQ3: PCA theo % phương sai / số thành phần cố định |
-| `clustering.py` | RQ4: K-Means + GMM, silhouette/DB/CH/ARI |
-| `external.py` | Tải và đánh giá model đóng băng trên Hassan và JPCERT (không tune trên nhãn ngoài) |
-| `decision.py` | Logic GO/NO-GO theo hai trục: học thuật và thực tế → `decision.json`, `DECISION.md` |
-| `reporting.py` | Sinh `SUMMARY.md` và các hình còn thiếu (confusion, ROC/PR, ...) |
+| # | Hàm | Làm gì | Ghi ra |
+|---|---|---|---|
+| 1 | `load_frames` | Đọc `vn_compphish.csv` (feature) và ghép `source`/`scenario` từ `dataset_url.csv` | — |
+| 2 | `run_audit` | Kiểm tra trùng URL, trùng domain giữa các split, `is_https` theo nhãn, danh sách feature được dùng | `feature_audit.csv` |
+| 3 | `run_quick` | Train trên **train**, chọn model trên **val** (10 cấu hình: dummy, LogReg, RF, LinearSVC) cho 2 tập: `FULL` và `GOLDSILVER` | `quick_val_*.csv`, `frozen_models.json` |
+| 4 | `run_final_test` | Fit lại model đã chọn, đánh giá **test một lần**, đóng băng model | `classification_metrics.csv`, `frozen_*.joblib`, `test_by_*.csv` |
+| 5 | `run_external` | Đưa model đóng băng vào Hassan (340k, cân bằng) và JPCERT (chỉ phishing). Ngưỡng cố định 0.5, **không tune** | `external_metrics.csv` |
+| 6 | `run_pca_cluster` | PCA chỉ fit trên train (RQ3); K-Means/GMM trên PCA(10) (RQ4). Bỏ qua khi `--mode quick` | `pca_results.csv`, `clustering_results.csv` |
+| 7 | `run_figures` | Vẽ hình | `figures/*.png` |
+| 8 | `write_reports` | Sinh báo cáo từ các CSV ở trên | `DECISION.md`, `QUICK_RESULTS.md` |
 
-### Pipeline PhishVN (dataset chính)
-| File | Làm gì |
-|---|---|
-| `pivot.py` | Bộ trích 21 feature **khớp đúng** schema PhishVN/CompPhish (URL bỏ scheme, quy tắc TLD `.vn`, loại `is_https`). Hằng `PHISHVN_FEATURES` |
-| `pivot_train.py` | Toàn bộ pipeline: `load_frames` → `run_audit` → `run_quick` (chọn trên val) → `run_final_test` (mở test 1 lần) → `run_external` → `run_pca_cluster` → `run_figures` → `write_reports`. Entry: `run_pivot` |
-
-> Lưu ý: `outputs/external/` của PhiUSIIL được sinh bằng các hàm trong `external.py`; chưa có lệnh CLI riêng cho bước này. Còn `pivot` tự đọc `data/external/hassan_balanced_urls.csv` và JPCERT nếu các file đó có sẵn.
+Hàm phụ đáng biết: `grids()` (danh sách model + siêu tham số), `norm_key()` (chuẩn hóa URL để ghép bảng), `_slice_frame()` (metric cho từng slice, kèm `tiny_n_flag`).
 
 ---
 
 ## 5. Cài đặt và chạy
 
-Yêu cầu: Python ≥ 3.11, chỉ cần CPU. Trên Windows nên dùng PowerShell.
+Yêu cầu: Python ≥ 3.11, chỉ cần CPU. Chạy hết pipeline mất khoảng 30–60 giây.
 
 ```bash
 python -m venv .venv
@@ -149,30 +116,18 @@ python -m venv .venv
 pip install -e ".[dev]"
 ```
 
-### 5.1 PhishVN (dataset chính), nên chạy cái này trước
-Cần sẵn `data/pivot/data/*.csv` (giải nén từ `data/pivot/PhishVN_open.zip`; kiểm tra hash bằng `MANIFEST.txt`).
-```bash
-python -m phishing_ml.cli pivot              # đầy đủ: audit → quick → test → external → PCA/cluster → hình → báo cáo
-python -m phishing_ml.cli pivot --mode quick # bỏ qua PCA/clustering
-```
-Kết quả nằm ở `outputs/pivot/` và `outputs/pivot_figures/`.
+### 5.1 Chuẩn bị dữ liệu (không có trong git)
+1. **PhishVN**: tải bản open tier từ Mendeley (DOI `10.17632/b97hxbxtpd.4`), giải nén sao cho có `data/phishvn/data/vn_compphish.csv`, `dataset_url.csv`, `splits/`, ... Kiểm tra hash bằng `data/phishvn/MANIFEST.txt`.
+2. **Dữ liệu ngoài** đặt trong `data/external/`:
+   - `hassan_balanced_urls.csv`: [Hassan-Albattra/URL_Phishing_Detection_Dataset](https://github.com/Hassan-Albattra/URL_Phishing_Detection_Dataset) (`balanced_urls.csv`, MIT).
+   - `jpcert_with_lexical.parquet` (chỉ cần cột `ext_url`): URL phishing từ [JPCERTCC/phishurl-list](https://github.com/JPCERTCC/phishurl-list) tháng 2025-01..06 (CSV thô nằm trong `data/external/jpcert/`).
 
-### 5.2 PhiUSIIL (benchmark phản diện)
-Chạy từng bước:
+### 5.2 Chạy
 ```bash
-python -m phishing_ml.cli fetch                               # tải từ UCI (hoặc dùng data/raw, raw_dl/, phiusiil.zip nếu có)
-python -m phishing_ml.cli audit                               # dedup, tính feature URL, split, audit bias
-python -m phishing_ml.cli quick    --config configs/quick.yaml # train → val (chưa đụng test)
-python -m phishing_ml.cli finalize --config configs/quick.yaml # đóng băng plan, mở test MỘT lần, ra quyết định
-python -m phishing_ml.cli full     --config configs/full.yaml  # PCA, clustering, split sensitivity
-python -m phishing_ml.cli report                              # dựng lại SUMMARY.md và hình
+python -m phishing_ml.cli run               # đầy đủ (gồm PCA + clustering)
+python -m phishing_ml.cli run --mode quick  # bỏ PCA/clustering
 ```
-Hoặc chạy gộp:
-```bash
-python -m phishing_ml.cli run --mode quick   # fetch → audit → quick → finalize → report
-python -m phishing_ml.cli run --mode full    # như trên + full
-```
-Có cờ `--dry-run` cho `quick/finalize/full/run` để kiểm tra dữ liệu và split mà không train.
+Mọi kết quả được ghi đè vào `outputs/`. Pipeline tất định (seed 42), nên chạy lại sẽ ra cùng số liệu.
 
 ### 5.3 Kiểm thử và lint
 ```bash
@@ -180,66 +135,58 @@ pytest -q
 ruff check .
 ```
 
-**Nếu RAM thấp:** đặt `train_subset_n: 50000` trong `configs/quick.yaml`. Giảm `n_jobs` nếu máy bị treo.
-
 ---
 
-## 6. Phương pháp (tóm tắt để đọc báo cáo cho đúng)
+## 6. Phương pháp
 
-### Luật chống leakage (áp dụng cho cả hai pipeline)
-- Imputer, scaler, PCA **chỉ fit trên train** (bọc trong `Pipeline`, có test kiểm tra).
-- **Validation** dùng để chọn model, siêu tham số và ngưỡng.
-- **Test bị khóa**: chỉ mở một lần sau khi đã đóng băng plan (`outputs/manifests/frozen_plan.json`, `test_evaluated.json`).
-- Dữ liệu ngoài (Hassan, JPCERT): dùng model đóng băng, ngưỡng cố định 0.5, **không bao giờ tune** trên nhãn ngoài.
+### Feature
+- **21 feature lexical** (`PHISHVN_FEATURES`): độ dài URL/domain/path/query, số chữ/số/ký tự đặc biệt, số dấu `. - _ / = ? &`, tỷ lệ ký tự, entropy, số subdomain, độ dài TLD, URL có phải IP không.
+- Tính trên URL **đã bỏ scheme** (`http://`, `https://`), theo đúng schema CompPhish.
+- **Loại `is_https`**: đây là dấu vết của cách thu thập (benign 12.3% so với phishing 0.55%), không phải tín hiệu phishing. Tác giả dataset cũng khuyến nghị bỏ.
+- **Loại mọi metadata**: ID, source, tier, timestamp, scenario. Đưa vào là leakage.
 
-### PhiUSIIL: 4 bộ feature (ablation cho RQ2)
-| Feature set | Nội dung | Ý nghĩa |
-|---|---|---|
-| `FULL_NUMERIC` | Mọi cột số | Lạc quan quá mức, chứa feature lộ nhãn |
-| `NO_SUSPECT_DERIVED` | FULL bỏ `URLSimilarityIndex`, `TLDLegitimateProb`, `URLCharProb`, `DomainTitleMatchScore`, `URLTitleMatchScore` | Bỏ leakage trực tiếp |
-| `URL_LEXICAL_STRICT` | 28 feature tính lại từ chuỗi URL, không dùng nhãn/HTML/WHOIS | Thứ có thể trích ra lúc triển khai |
-| `STRICT_NO_COLLECTION_CUES` | STRICT bỏ `has_www`, `is_https`, `path_*`, `query_*`, ... | Bỏ thêm các dấu vết của cách thu thập dữ liệu |
+### Chia dữ liệu và luật chống leakage
+- Dùng **split temporal chính thức** của tác giả (train 36,909 / val 7,266 / test 8,941). Split chia theo nhóm, không domain nào xuất hiện ở hai split; test là dữ liệu mới nhất.
+- Imputer và scaler nằm trong `Pipeline` nên **chỉ fit trên train**.
+- **Validation** dùng để chọn model và siêu tham số. **Test chỉ mở một lần** sau khi đã chọn xong.
+- Dữ liệu ngoài: model đóng băng, ngưỡng 0.5, nhãn ngoài chỉ dùng để chấm điểm.
 
-Splits: random stratified 64/16/20 (seed 42) **và** domain-disjoint theo eTLD+1.
-
-### PhishVN
-- 21 feature lexical (`PHISHVN_FEATURES`), loại `is_https` và mọi metadata (source, tier, timestamp, scenario).
-- Dùng **split temporal chính thức** của tác giả (train 36909 / val 7266 / test 8941), không có domain nào trùng giữa các split.
-- Hai tập con: `FULL` (mọi tier, là headline) và `GOLDSILVER` (chỉ nhãn tin cậy cao, dùng để nghiên cứu nhiễu nhãn).
-- Có slice theo source / tier / scenario / URL (`test_by_*.csv`). Slice có `tiny_n_flag` (n<30) thì **không diễn giải**.
+### Hai tập con
+- **`FULL`**: mọi tier, là **kết quả chính**.
+- **`GOLDSILVER`**: chỉ nhãn tin cậy cao. Val chỉ có 24 phishing nên việc chọn model không ổn định. Dùng tập này để nghiên cứu nhiễu nhãn và drift, không dùng làm con số chính.
 
 ### Đọc metric thế nào
-- So với **dummy baseline** trước. Ví dụ GOLDSILVER: dummy acc 0.985 > RF 0.967, nhưng F1 phishing của dummy = 0.
-- Chốt bằng **F1 phishing + macro-F1**, không chốt bằng accuracy khi lệch lớp.
-- Accuracy 100% thì dùng **CI chính xác Clopper–Pearson** (ví dụ [0.99992, 1.0]), không dùng bootstrap [1.0, 1.0].
-- JPCERT chỉ có phishing nên chỉ báo `recall_phishonly`. Nó **không đo được false positive**, mà đó chính là chỗ cả hai dataset hỏng.
+- **So với dummy baseline trước.** Ví dụ GOLDSILVER: dummy (luôn đoán benign) đạt acc 0.985, cao hơn RF 0.967, nhưng F1 phishing = 0.
+- **Chốt bằng F1 phishing + macro-F1**, không chốt bằng accuracy khi lệch lớp.
+- CI của accuracy dùng **Clopper–Pearson** (chính xác theo phân phối nhị thức).
+- Slice có `tiny_n_flag=True` (n < 30) thì **không diễn giải**.
+- JPCERT chỉ có phishing nên chỉ báo `recall_phishonly`. Nó **không đo được false positive**, mà false positive lại chính là chỗ model hỏng.
 
 ---
 
-## 7. Kết quả chính (trả lời RQ1–RQ4)
+## 7. Trả lời các câu hỏi nghiên cứu
 
-| RQ | PhiUSIIL | PhishVN |
+| RQ | Câu hỏi | Kết quả |
 |---|---|---|
-| **RQ1** So sánh model | RF thắng, acc 1.000 (FULL) / 0.998 (STRICT) | LogReg C=10 thắng: test acc **0.9026**, F1 **0.9194**, ROC 0.958 |
-| **RQ2** Bỏ feature nghi vấn / domain chưa gặp / dữ liệu ngoài | Nội bộ gần như không giảm, nhưng Hassan **0.500** (−49.8pp); legit có path đúng 0/165085 | Hassan **0.439** (−46.3pp), specificity 0.038; nguồn tranco chỉ đạt 0.297 |
-| **RQ3** PCA | `outputs/metrics/pca_results.csv` | PCA làm giảm: 8 PCs (90% var) acc 0.773 so với 0.871 khi không dùng PCA |
-| **RQ4** Clustering | `outputs/metrics/clustering_metrics.csv` | ARI ≈ 0 với k=2, tốt nhất 0.209 (GMM k=4); không có cụm khớp nhãn |
+| **RQ1** | So sánh LogReg / RF / LinearSVC trên cùng split | LogReg C=10 tốt nhất trên val (F1 0.9215) → test F1 **0.9194**, acc **0.9026** |
+| **RQ2** | Hiệu năng khi gặp nguồn/tier/dữ liệu chưa thấy | Nguồn tranco chỉ đạt 0.297, tier silver 0.601; Hassan **0.439** (−46.3pp). Model học quy tắc kiểu ".vn/tổ chức tin cậy = benign" |
+| **RQ3** | PCA ảnh hưởng thế nào | Giảm hiệu năng: var90 (8 PCs) acc 0.773 / F1 0.863 so với 0.871 / 0.921 khi không dùng PCA. Nên giữ đủ feature |
+| **RQ4** | K-Means/GMM có cụm khớp nhãn không | Không: ARI ≈ 0 với k=2, tốt nhất 0.209 (GMM diag k=4). Chỉ mang tính mô tả |
 
-Số liệu và giải thích đầy đủ nằm trong các file `DECISION.md` ở mục 1.
+Kết quả âm (PCA làm giảm hiệu năng, cluster không khớp nhãn, sụp trên dữ liệu ngoài) **là kết quả đáng báo cáo**, không phải lỗi.
 
 ---
 
 ## 8. Câu hỏi thường gặp
 
-- **Sao không dùng PhiUSIIL khi nó được 100%?** Vì 100% đến từ leakage (`URLSimilarityIndex` = 100 với mọi URL legit) và collection bias (legit luôn là homepage `https://www...`). Gặp URL thật có path, model đoán phishing hết.
-- **Sao bỏ `is_https`?** Đây là dấu vết của cách thu thập dữ liệu, không phải tín hiệu phishing. Chính tác giả PhishVN khuyến nghị bỏ.
-- **Muốn thêm model mới?** Với PhiUSIIL: thêm vào `models.py` + `configs/*.yaml`. Với PhishVN: thêm vào `grids()` trong `pivot_train.py`. Chỉ chọn trên val, không chỉnh sau khi đã xem test.
-- **Có được chạy lại test không?** Chạy lại để tái lập kết quả thì được. Nhưng **không được sửa model dựa trên kết quả test** rồi báo cáo lại trên cùng test đó như kết quả không thiên lệch.
+- **Muốn thêm model?** Thêm vào `grids()` trong `pipeline.py`. Chỉ chọn trên val, không chỉnh model sau khi đã xem test.
+- **Có được chạy lại test không?** Chạy lại để tái lập kết quả thì được (kết quả tất định). Nhưng **không được sửa model dựa trên kết quả test** rồi báo cáo lại trên cùng test đó như kết quả không thiên lệch.
+- **Sao accuracy chỉ 90% mà vẫn "tốt"?** Vì đó là con số trung thực: split theo thời gian, không trùng domain, đã bỏ `is_https`. Dataset UCI PhiUSIIL cho 100% nhưng ra dữ liệu thật chỉ còn 50% (xem `archive/phiusiil/`).
+- **Sao không dùng PhiUSIIL?** Vì có leakage (`URLSimilarityIndex`) và collection bias (legit luôn là homepage `https://www...`). Chi tiết ở `archive/phiusiil/README.md`; code gốc ở git tag `phiusiil-baseline`.
 
 ---
 
 ## 9. Nguồn dữ liệu
-- PhiUSIIL: UCI ID 967, <https://archive.ics.uci.edu/dataset/967/phiusiil+phishing+url+dataset>
-- PhishVN v3.1.0 (CC BY 4.0): Mendeley DOI `10.17632/b97hxbxtpd.4`, xem `data/pivot/CITATION.cff`
-- Hassan-Albattra `balanced_urls.csv` (MIT, 340k URL, 2023): chỉ dùng để đánh giá ngoài
-- JPCERTCC `phishurl-list` 2025-01..06: phishing do CERT xác minh, chỉ dùng để đo recall
+- **PhishVN v3.1.0** (CC BY 4.0): Mendeley DOI `10.17632/b97hxbxtpd.4`; trích dẫn theo `data/phishvn/CITATION.cff`.
+- **Hassan-Albattra `balanced_urls.csv`** (MIT, 340k URL, 2023): chỉ dùng để đánh giá ngoài.
+- **JPCERTCC `phishurl-list`** 2025-01..06: phishing do CERT xác minh, chỉ dùng để đo recall.

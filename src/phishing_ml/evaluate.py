@@ -1,4 +1,4 @@
-"""Metrics: accuracy, F1 (phishing=1), ROC/PR-AUC, bootstrap CI, threshold tuning."""
+"""Metrics: accuracy, F1 (phishing=1), ROC/PR-AUC, exact Clopper-Pearson CI."""
 from __future__ import annotations
 
 import numpy as np
@@ -60,77 +60,6 @@ def compute_metrics(y_true, y_pred, y_score=None) -> dict:
         out["pr_auc"] = float("nan")
     return out
 
-
-def tune_threshold(y_true, y_score, rule="f1"):
-    y_true = np.asarray(y_true).astype(int)
-    y_score = np.asarray(y_score, dtype=float)
-    thrs = np.unique(np.quantile(y_score, np.linspace(0, 1, 101)))
-    best = {"threshold": 0.5 if y_score.max() <= 1.0 and y_score.min() >= 0.0 else 0.0}
-    # default metric
-    def_thr = best["threshold"]
-    ypd = (y_score >= def_thr).astype(int)
-    best["default"] = compute_metrics(y_true, ypd, y_score)
-    best_f1, best_thr = -1.0, def_thr
-    best_prec_at_r95, thr_r95 = -1.0, None
-    for t in thrs:
-        yp = (y_score >= t).astype(int)
-        f1 = f1_score(y_true, yp, zero_division=0)
-        rec = recall_score(y_true, yp, zero_division=0)
-        prec = precision_score(y_true, yp, zero_division=0)
-        if f1 > best_f1:
-            best_f1, best_thr = f1, float(t)
-        if rec >= 0.95 and prec > best_prec_at_r95:
-            best_prec_at_r95, thr_r95 = prec, float(t)
-    yp_best = (y_score >= best_thr).astype(int)
-    best["tuned_threshold_f1"] = best_thr
-    best["tuned"] = compute_metrics(y_true, yp_best, y_score)
-    best["recall95_threshold"] = thr_r95
-    if thr_r95 is not None:
-        best["recall95"] = compute_metrics(y_true, (y_score >= thr_r95).astype(int), y_score)
-    if rule == "recall95" and thr_r95 is not None:
-        best["selected_threshold"] = thr_r95
-        best["selected"] = best["recall95"]
-    else:
-        best["selected_threshold"] = best_thr
-        best["selected"] = best["tuned"]
-    return best
-
-
-def bootstrap_ci(y_true, y_pred, n_boot=500, seed=42):
-    rng = np.random.default_rng(seed)
-    y_true = np.asarray(y_true).astype(int)
-    y_pred = np.asarray(y_pred).astype(int)
-    n = len(y_true)
-    accs, f1s = [], []
-    for _ in range(n_boot):
-        idx = rng.integers(0, n, n)
-        yt, yp = y_true[idx], y_pred[idx]
-        # skip degenerate (single class) samples
-        if len(np.unique(yt)) < 2:
-            continue
-        accs.append(accuracy_score(yt, yp))
-        f1s.append(f1_score(yt, yp, zero_division=0))
-    def ci(a):
-        a = np.asarray(a)
-        if len(a) == 0:
-            return (float("nan"), float("nan"))
-        return (float(np.percentile(a, 2.5)), float(np.percentile(a, 97.5)))
-    out = {"acc_ci95": ci(accs), "f1_ci95": ci(f1s), "n_boot": int(len(accs))}
-    # Corrected exact binomial (Clopper-Pearson) CI for accuracy.
-    # Percentile bootstrap is degenerate when accuracy==1.0 (all resamples 1.0 -> [1,1]),
-    # which understates uncertainty. Exact CI gives proper lower bound via Rule-of-Three.
-    try:
-        k = int((y_true == y_pred).sum())
-        out["acc_exact_ci95"] = clopper_pearson_ci(k, n)
-        # Flag degenerate bootstrap
-        if k == n:
-            out["acc_ci95_note"] = "percentile bootstrap degenerate [1,1]; use acc_exact_ci95"
-        # F1 percentile is likewise degenerate when no errors; flag it
-        if k == n:
-            out["f1_ci95_note"] = "percentile bootstrap degenerate [1,1] when zero errors; do not interpret as zero uncertainty"
-    except Exception:
-        pass
-    return out
 
 
 def clopper_pearson_ci(k: int, n: int, alpha: float = 0.05):

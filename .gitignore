@@ -2,6 +2,7 @@
 data/raw/
 data/processed/
 data/external/
+archive/phiusiil/data/
 raw_dl/
 *.zip
 # outputs: track reports/metrics/figures (small); models stay ignored via *.joblib
@@ -14,7 +15,7 @@ __pycache__/
 .venv/
 *.egg-info/
 # PhishVN release data (download from Mendeley DOI 10.17632/b97hxbxtpd.4); keep docs only
-data/pivot/data/
+data/phishvn/data/
 # tool caches
 .pytest_cache/
 .ruff_cache/

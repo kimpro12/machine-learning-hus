@@ -1,14 +1,13 @@
-"""PhishVN pivot training/evaluation pipeline (reproducible, in-repo).
+"""PhishVN training/evaluation pipeline (reproducible, in-repo).
 
-Canonical home of the one-off experiment scripts used for the initial pivot.
 Running::
 
-    python -m phishing_ml.cli pivot            # full: audit -> quick -> test -> external -> pca/cluster -> figs -> reports
-    python -m phishing_ml.cli pivot --mode quick   # skip PCA/clustering
+    python -m phishing_ml.cli run               # full: audit -> quick -> test -> external -> pca/cluster -> figs -> reports
+    python -m phishing_ml.cli run --mode quick  # skip PCA/clustering
 
-reproduces everything under outputs/pivot/ + outputs/pivot_figures/ from
-data/pivot/data/*.csv (official release, MANIFEST-verified) plus the
-independent externals under data/external/ (Hassan, JPCERT).
+reproduces everything under outputs/ from data/phishvn/data/*.csv (official
+release, MANIFEST-verified) plus the independent externals under
+data/external/ (Hassan, JPCERT).
 
 Conventions (must stay stable for reproducibility):
 - PhishVN label: 1 = phishing, 0 = benign. Positive class = phishing (1).
@@ -46,12 +45,12 @@ from sklearn.metrics import (
 )
 
 from .evaluate import clopper_pearson_ci, compute_metrics, scores_from_model
-from .pivot import PHISHVN_FEATURES as FEATS
+from .features import PHISHVN_FEATURES as FEATS
 from .preprocess import make_pipeline
 
 ROOT = Path(__file__).resolve().parents[2]
-PIVOT = ROOT / 'outputs' / 'pivot'
-PIVFIG = ROOT / 'outputs' / 'pivot_figures'
+OUT = ROOT / 'outputs'
+FIG = ROOT / 'outputs' / 'figures'
 
 SUBSETS = ('FULL', 'GOLDSILVER')
 TIER_CORE = ('gold', 'silver')
@@ -92,8 +91,8 @@ def grids():
 
 def load_frames():
     """Load release tables + merge source/scenario via normalized key."""
-    v = pd.read_csv(ROOT / 'data' / 'pivot' / 'data' / 'vn_compphish.csv', low_memory=False)
-    d = pd.read_csv(ROOT / 'data' / 'pivot' / 'data' / 'dataset_url.csv', low_memory=False)
+    v = pd.read_csv(ROOT / 'data' / 'phishvn' / 'data' / 'vn_compphish.csv', low_memory=False)
+    d = pd.read_csv(ROOT / 'data' / 'phishvn' / 'data' / 'dataset_url.csv', low_memory=False)
     v['k'] = v['url'].map(norm_key)
     d['k'] = d['url'].map(norm_key)
     vv = pd.merge(v, d[['k', 'source', 'scenario']], on='k', how='left')
@@ -136,8 +135,8 @@ def run_audit(vv: pd.DataFrame) -> dict:
             'reason': 'collection artefact per authors' if c == 'is_https'
                       else 'lexical, URL-computable',
         })
-    PIVOT.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(rows).to_csv(PIVOT / 'feature_audit.csv', index=False)
+    OUT.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).to_csv(OUT / 'feature_audit.csv', index=False)
     return stats
 
 
@@ -174,10 +173,10 @@ def run_quick(vv: pd.DataFrame) -> dict:
                          'roc': m['roc_auc'], 'pr': m['pr_auc'],
                          'TN': m['TN'], 'FP': m['FP'], 'FN': m['FN'], 'TP': m['TP']})
         q = pd.DataFrame(rows)
-        q.to_csv(PIVOT / f'quick_val_{name}.csv', index=False)
+        q.to_csv(OUT / f'quick_val_{name}.csv', index=False)
         best[name] = q.sort_values('f1', ascending=False).iloc[0].to_dict()
     json.dump({k: v['model'] for k, v in best.items()},
-              open(PIVOT / 'frozen_models.json', 'w'))
+              open(OUT / 'frozen_models.json', 'w'))
     return best
 
 
@@ -215,10 +214,10 @@ def run_final_test(vv: pd.DataFrame, best: dict) -> pd.DataFrame:
                            'roc': m['roc_auc'], 'pr': m['pr_auc'],
                            'TN': m['TN'], 'FP': m['FP'], 'FN': m['FN'], 'TP': m['TP'],
                            'acc_exact_lo': lo, 'acc_exact_hi': hi})
-        joblib.dump(pipe, PIVOT / f'frozen_{name.lower()}_best.joblib')
+        joblib.dump(pipe, OUT / f'frozen_{name.lower()}_best.joblib')
         _write_test_breakdowns(vv, name, pipe)
     fin = pd.DataFrame(final_rows)
-    fin.to_csv(PIVOT / 'classification_metrics.csv', index=False)
+    fin.to_csv(OUT / 'classification_metrics.csv', index=False)
     return fin
 
 
@@ -258,7 +257,7 @@ def _write_test_breakdowns(vv: pd.DataFrame, name: str, pipe) -> None:
         df = pd.DataFrame(rows).sort_values('n', ascending=False)
         df.insert(1, 'slice_col', col)
         df.rename(columns={'slice': col}, inplace=True)
-        df.to_csv(PIVOT / f'test_by_{col}_{name}.csv', index=False)
+        df.to_csv(OUT / f'test_by_{col}_{name}.csv', index=False)
     masks = [('has_path', te['has_path'] == 1), ('no_path', te['has_path'] == 0),
              ('has_query', te['has_query'] == 1),
              ('is_vn', te['is_vn'] == 1), ('non_vn', te['is_vn'] == 0),
@@ -270,14 +269,14 @@ def _write_test_breakdowns(vv: pd.DataFrame, name: str, pipe) -> None:
             rows.append({'slice': sname, 'subset': name, 'n': 0, 'tiny_n_flag': True})
             continue
         rows.append(_slice_frame(y[idx], pred[idx], score[idx], sname, name))
-    pd.DataFrame(rows).to_csv(PIVOT / f'test_by_urlslice_{name}.csv', index=False)
+    pd.DataFrame(rows).to_csv(OUT / f'test_by_urlslice_{name}.csv', index=False)
 
 
 # ---------------------------------------------------------------- external evaluation
 def run_external(frozen_info: dict) -> pd.DataFrame:
-    from .pivot import phishvn_features
+    from .features import phishvn_features
     ext_rows = []
-    pipes = {n: joblib.load(PIVOT / f'frozen_{n.lower()}_best.joblib') for n in SUBSETS}
+    pipes = {n: joblib.load(OUT / f'frozen_{n.lower()}_best.joblib') for n in SUBSETS}
     hpath = ROOT / 'data' / 'external' / 'hassan_balanced_urls.csv'
     if hpath.exists():
         h = pd.read_csv(hpath, low_memory=False)
@@ -342,7 +341,7 @@ def run_external(frozen_info: dict) -> pd.DataFrame:
                              'acc_lo': lo, 'acc_hi': hi,
                              'note': 'phishing-only; accuracy column intentionally empty'})
     ext = pd.DataFrame(ext_rows)
-    ext.to_csv(PIVOT / 'external_metrics.csv', index=False)
+    ext.to_csv(OUT / 'external_metrics.csv', index=False)
     return ext
 
 
@@ -398,7 +397,7 @@ def run_pca_cluster(vv: pd.DataFrame) -> None:
                           'f1': round(m['f1_phishing'], 4),
                           'roc': round(float(m.get('roc_auc', float('nan'))), 4),
                           'fit_s': round(ft, 2)})
-    pd.DataFrame(prows).to_csv(PIVOT / 'pca_results.csv', index=False)
+    pd.DataFrame(prows).to_csv(OUT / 'pca_results.csv', index=False)
     rng = np.random.default_rng(42)
     idx = rng.choice(len(Xtr), size=min(15000, len(Xtr)), replace=False)
     Z = PCA(n_components=min(10, Xs.shape[1]), random_state=42).fit_transform(
@@ -429,7 +428,7 @@ def run_pca_cluster(vv: pd.DataFrame) -> None:
                           'bic': round(float(gm.bic(Z)), 1), 'aic': round(float(gm.aic(Z)), 1)})
         except Exception as e:
             crows.append({'method': 'gmm_diag', 'k': k, 'error': str(e)})
-    pd.DataFrame(crows).to_csv(PIVOT / 'clustering_results.csv', index=False)
+    pd.DataFrame(crows).to_csv(OUT / 'clustering_results.csv', index=False)
     lab2 = KMeans(n_clusters=2, random_state=42, n_init=10).fit_predict(Z)
     _fig_scatter(Z, lab2)
 
@@ -447,7 +446,7 @@ def _fig_scree(cum) -> None:
     ax.set_title('PhishVN PCA scree (train-only fit, 21 feats)')
     ax.legend()
     fig.tight_layout()
-    fig.savefig(PIVFIG / 'pivot_pca_scree.png', dpi=150)
+    fig.savefig(FIG / 'pca_scree.png', dpi=150)
     plt.close(fig)
 
 
@@ -461,7 +460,7 @@ def _fig_scatter(Z, lab) -> None:
     ax.set_ylabel('PC2')
     ax.set_title('PhishVN KMeans k=2 on PCA(10) subsample n=15000 (ARI posterior only)')
     fig.tight_layout()
-    fig.savefig(PIVFIG / 'pivot_cluster_pca_scatter.png', dpi=150)
+    fig.savefig(FIG / 'cluster_pca_scatter.png', dpi=150)
     plt.close(fig)
 
 
@@ -470,9 +469,9 @@ def run_figures() -> None:
     import matplotlib
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
-    PIVFIG.mkdir(parents=True, exist_ok=True)
-    fin = pd.read_csv(PIVOT / 'classification_metrics.csv')
-    ext = pd.read_csv(PIVOT / 'external_metrics.csv')
+    FIG.mkdir(parents=True, exist_ok=True)
+    fin = pd.read_csv(OUT / 'classification_metrics.csv')
+    ext = pd.read_csv(OUT / 'external_metrics.csv')
 
     def plot_cm(tn, fp, fn, tp, title, path) -> None:
         fig, ax = plt.subplots(figsize=(4, 4))
@@ -492,11 +491,11 @@ def run_figures() -> None:
     r = fin[fin['subset'] == 'FULL'].iloc[0]
     plot_cm(int(r['TN']), int(r['FP']), int(r['FN']), int(r['TP']),
             f"PhishVN FULL test ({r['model']})\nTN{r['TN']} FP{r['FP']} FN{r['FN']} TP{r['TP']}",
-            PIVFIG / 'pivot_confusion_internal_full.png')
+            FIG / 'confusion_internal_full.png')
     h = ext[(ext['external'] == 'hassan_340k') & (ext['model_subset'] == 'FULL')].iloc[0]
     plot_cm(int(h['TN']), int(h['FP']), int(h['FN']), int(h['TP']),
             f"Hassan external FULL (frozen)\nTN{h['TN']} FP{h['FP']} FN{h['FN']} TP{h['TP']}",
-            PIVFIG / 'pivot_confusion_hassan_full.png')
+            FIG / 'confusion_hassan_full.png')
     g = ext[ext['external'] == 'hassan_340k'].set_index('model_subset')['accuracy'].to_dict()
     labels = ['FULL\ninternal', 'FULL\nHassan', 'GOLDSILVER\ninternal', 'GOLDSILVER\nHassan']
     vals = [float(r['accuracy']), float(g['FULL']),
@@ -510,9 +509,9 @@ def run_figures() -> None:
     for x, yv in zip(labels, vals):
         ax.text(labels.index(x), yv + 0.02, f'{yv:.4f}', ha='center', fontsize=9)
     fig.tight_layout()
-    fig.savefig(PIVFIG / 'pivot_internal_vs_external_gap.png', dpi=150)
+    fig.savefig(FIG / 'internal_vs_external_gap.png', dpi=150)
     plt.close(fig)
-    s = pd.read_csv(PIVOT / 'test_by_source_FULL.csv')
+    s = pd.read_csv(OUT / 'test_by_source_FULL.csv')
     fig, ax = plt.subplots(figsize=(9, 4))
     ax.bar(range(len(s)), s['accuracy'])
     ax.set_xticks(range(len(s)))
@@ -523,7 +522,7 @@ def run_figures() -> None:
     for i, (a, n) in enumerate(zip(s['accuracy'], s['n'])):
         ax.text(i, a + 0.02, f'{a:.3f}\nn={n}', ha='center', fontsize=7)
     fig.tight_layout()
-    fig.savefig(PIVFIG / 'pivot_source_bias.png', dpi=150)
+    fig.savefig(FIG / 'source_bias.png', dpi=150)
     plt.close(fig)
 
 
@@ -538,21 +537,21 @@ def write_reports(audit: dict, fin: pd.DataFrame, ext: pd.DataFrame) -> None:
     h_full = er[('hassan_340k', 'FULL')]
     h_gs = er[('hassan_340k', 'GOLDSILVER')]
     gap_full = (h_full['accuracy'] - fr['FULL']['accuracy']) * 100
-    q_full = pd.read_csv(PIVOT / 'quick_val_FULL.csv').sort_values('f1', ascending=False).iloc[0]
-    q_gs = pd.read_csv(PIVOT / 'quick_val_GOLDSILVER.csv').sort_values('f1', ascending=False).iloc[0]
-    d_full = pd.read_csv(PIVOT / 'quick_val_FULL.csv').set_index('model').to_dict('index')['dummy_most_frequent']
-    d_gs = pd.read_csv(PIVOT / 'quick_val_GOLDSILVER.csv').set_index('model').to_dict('index')['dummy_most_frequent']
+    q_full = pd.read_csv(OUT / 'quick_val_FULL.csv').sort_values('f1', ascending=False).iloc[0]
+    q_gs = pd.read_csv(OUT / 'quick_val_GOLDSILVER.csv').sort_values('f1', ascending=False).iloc[0]
+    d_full = pd.read_csv(OUT / 'quick_val_FULL.csv').set_index('model').to_dict('index')['dummy_most_frequent']
+    d_gs = pd.read_csv(OUT / 'quick_val_GOLDSILVER.csv').set_index('model').to_dict('index')['dummy_most_frequent']
     val_gs_pos = 'only 24 phishing in val (train 2076 / test 487)'
-    src = pd.read_csv(PIVOT / 'test_by_source_FULL.csv').sort_values('accuracy')
-    tier = pd.read_csv(PIVOT / 'test_by_tier_FULL.csv').sort_values('accuracy')
-    scen = pd.read_csv(PIVOT / 'test_by_scenario_FULL.csv').sort_values('accuracy')
-    usl = pd.read_csv(PIVOT / 'test_by_urlslice_FULL.csv')
-    pca = pd.read_csv(PIVOT / 'pca_results.csv') if (PIVOT / 'pca_results.csv').exists() else None
-    clu = pd.read_csv(PIVOT / 'clustering_results.csv') if (PIVOT / 'clustering_results.csv').exists() else None
+    src = pd.read_csv(OUT / 'test_by_source_FULL.csv').sort_values('accuracy')
+    tier = pd.read_csv(OUT / 'test_by_tier_FULL.csv').sort_values('accuracy')
+    scen = pd.read_csv(OUT / 'test_by_scenario_FULL.csv').sort_values('accuracy')
+    usl = pd.read_csv(OUT / 'test_by_urlslice_FULL.csv')
+    pca = pd.read_csv(OUT / 'pca_results.csv') if (OUT / 'pca_results.csv').exists() else None
+    clu = pd.read_csv(OUT / 'clustering_results.csv') if (OUT / 'clustering_results.csv').exists() else None
     worst_src = src.iloc[0]
     worst_tier = tier.iloc[0]
     scen_big = scen[scen['n'] >= 100].sort_values('accuracy')
-    usl = pd.read_csv(PIVOT / 'test_by_urlslice_FULL.csv')
+    usl = pd.read_csv(OUT / 'test_by_urlslice_FULL.csv')
     tiny_slices = usl[usl['tiny_n_flag'] == True]  # noqa: E712 (CSV round-trip bool)
     pca_line = ''
     if pca is not None and len(pca):
@@ -560,7 +559,7 @@ def write_reports(audit: dict, fin: pd.DataFrame, ext: pd.DataFrame) -> None:
         p9 = pca[(pca['condition'] == 'var90') & (pca['model'] == 'logreg_C1')].iloc[0]
         pca_line = (f"PCA (train-only fit, 21 feats): no-PCA logreg val acc {p0['acc']:.3f}/F1 {p0['f1']:.3f}; "
                     f"var90 ({int(p9['n_comp'])} PCs) {p9['acc']:.3f}/{p9['f1']:.3f}. "
-                    f"Reduction hurts — keep full features. See `pca_results.csv`, `pivot_pca_scree.png`.")
+                    f"Reduction hurts — keep full features. See `pca_results.csv`, `pca_scree.png`.")
     clu_line = ''
     if clu is not None and len(clu):
         k2 = clu[(clu['method'] == 'kmeans') & (clu['k'] == 2)].iloc[0]
@@ -569,7 +568,7 @@ def write_reports(audit: dict, fin: pd.DataFrame, ext: pd.DataFrame) -> None:
                     f"best ARI {mx['ari']:.4f} ({mx['method']} k={int(mx['k'])}). "
                     f"No label-aligned clusters — expected, descriptive only. See `clustering_results.csv`.")
 
-    quick = f"""# PhishVN Pivot — Quick Results
+    quick = f"""# PhishVN — Quick Results
 
 Label convention (PhishVN): `label=1` phishing / `label=0` benign. Positive class = phishing (1) in all metrics.
 Dataset: Mendeley DOI `10.17632/b97hxbxtpd.4` (v3.1.0 open tier), zip SHA-256 `308351e9…5d0ab` verified; all `MANIFEST.txt` file hashes OK (14/14).
@@ -579,8 +578,8 @@ Official group-aware temporal split preserved: train {audit['split_counts'].get(
 - {audit['n']} rows: phishing {audit['label_counts'].get(1)} / benign {audit['label_counts'].get(0)}. Verified gold+silver core: {audit['tier_counts'].get('gold', 0) + audit['tier_counts'].get('silver', 0)}.
 - Exact URL dups: {audit['exact_url_dups']}; normalized-URL dup groups: {audit['norm_dup_groups']}; registrable-domain overlap train/val/test: **{audit['domain_overlap']['train_val']}/{audit['domain_overlap']['train_test']}/{audit['domain_overlap']['val_test']}**.
 - Collection artefact confirmed: `is_https` benign mean {audit['is_https_by_label'].get('0', float('nan')):.4f} vs phish {audit['is_https_by_label'].get('1', float('nan')):.4f} — **excluded from all modelling**.
-- Modelling features (21, constant `PHISHVN_FEATURES`; old alias `PHISHVN_NUMERIC_20` kept): {', '.join(FEATS)}. IDs, source, tier, timestamps, scenario/impersonated_org, metadata excluded. See `feature_audit.csv`.
-- Extractor validated 53114/53116 integer-exact; 2 residual release-quirk rows documented (see DECISION.md). Covered by `tests/test_pivot.py`.
+- Modelling features (21, constant `PHISHVN_FEATURES`): {', '.join(FEATS)}. IDs, source, tier, timestamps, scenario/impersonated_org, metadata excluded. See `feature_audit.csv`.
+- Extractor validated 53114/53116 integer-exact; 2 residual release-quirk rows documented (see DECISION.md). Covered by `tests/test_features.py`.
 
 ## 2. Validation (official val, selection only)
 FULL: best **{q_full['model']}** acc {_f(q_full['accuracy'])}, F1 {_f(q_full['f1'])}, ROC {_f(q_full['roc'])}. See `quick_val_FULL.csv`.
@@ -607,13 +606,13 @@ GOLDSILVER ({val_gs_pos}): best **{q_gs['model']}** acc {_f(q_gs['accuracy'])}, 
 - {clu_line}
 
 ## Files
-- `outputs/pivot/{{feature_audit.csv,classification_metrics.csv,external_metrics.csv,quick_val_*.csv,test_by_*.csv,pca_results.csv,clustering_results.csv,frozen_*.joblib}}`
-- `outputs/pivot_figures/` confusion, gap, source-bias, PCA scree, cluster scatter plots.
-- PhiUSIIL negative benchmark preserved untouched in `outputs/` (DECISION.md, decision.json, external/).
+- `outputs/{{feature_audit.csv,classification_metrics.csv,external_metrics.csv,quick_val_*.csv,test_by_*.csv,pca_results.csv,clustering_results.csv,frozen_*.joblib}}`
+- `outputs/figures/` confusion, gap, source-bias, PCA scree, cluster scatter plots.
+- PhiUSIIL negative benchmark archived in `archive/phiusiil/` (git tag `phiusiil-baseline`).
 """
-    (PIVOT / 'QUICK_RESULTS.md').write_text(quick, encoding='utf-8')
+    (OUT / 'QUICK_RESULTS.md').write_text(quick, encoding='utf-8')
 
-    decision = f"""# PhishVN Pivot — Decision
+    decision = f"""# PhishVN — Decision
 
 Label convention: PhishVN `label=1` phishing / `label=0` benign (positive = phishing).
 
@@ -637,11 +636,11 @@ Label convention: PhishVN `label=1` phishing / `label=0` benign (positive = phis
 
 ## GOLDSILVER caveat
 Gold+silver-only looks accurate ({_f(fr['GOLDSILVER']['accuracy'])}) but F1 is {_f(fr['GOLDSILVER']['f1'])} with phishing recall {_f(fr['GOLDSILVER']['rec'])} ({fr['GOLDSILVER']['TP']}/{fr['GOLDSILVER']['TP'] + fr['GOLDSILVER']['FN']}) on the official test — the verified core's newest phishing (temporal test = newest groups) is the hardest slice. Val positives are only 24, so the RF selection itself is unstable (LinSVC led val ROC). Use FULL as the primary benchmark; use GOLDSILVER to study label noise, drift, and class-imbalance handling — not as the headline number.
-- Extractor audit note: `PHISHVN_FEATURES` (21 items; legacy alias `PHISHVN_NUMERIC_20` kept) validated 53114/53116 exact on integers; 2 residual release-quirk rows documented. Slice tables carry `tiny_n_flag` (n<30).
+- Extractor audit note: `PHISHVN_FEATURES` (21 items) validated 53114/53116 exact on integers; 2 residual release-quirk rows documented. Slice tables carry `tiny_n_flag` (n<30).
 
 ## What to do
 - Course report: benchmark FULL (LR/RF/SVC), ablate tiers (gold/silver vs bronze), sources (tranco global vs .vn), URL slices (tiny-n flagged, don't overclaim), PCA/clustering as completed.
-- Keep PhiUSIIL artifacts untouched as the catastrophic-generalization baseline.
+- PhiUSIIL artifacts are archived in `archive/phiusiil/` as the catastrophic-generalization baseline.
 - Deployment: CHANGE_DATASET (collect time-split, vendor-diverse URLs with legitimate deep links + independent validation) — out of scope for this course.
 
 ## Vì sao macro-F1 (và baseline dummy)
@@ -650,40 +649,40 @@ Gold+silver-only looks accurate ({_f(fr['GOLDSILVER']['accuracy'])}) but F1 is {
 - Quy tắc đọc báo cáo này: so accuracy với dummy trước (nếu model thua dummy về accuracy mà hơn về F1/macro-F1 thì đó là tín hiệu class-imbalance, không phải model tệ); chốt bằng F1 phishing + macro-F1, không chốt bằng accuracy.
 
 ## Evidence
-- `outputs/pivot/QUICK_RESULTS.md`, `feature_audit.csv`, `classification_metrics.csv`, `external_metrics.csv`, `test_by_{{source,tier,scenario,urlslice}}_{{FULL,GOLDSILVER}}.csv`, `pca_results.csv`, `clustering_results.csv`
-- `outputs/pivot_figures/pivot_confusion_internal_full.png`, `pivot_confusion_hassan_full.png`, `pivot_internal_vs_external_gap.png`, `pivot_source_bias.png`, `pivot_pca_scree.png`, `pivot_cluster_pca_scatter.png`
-- Downloads: `data/pivot/PhishVN_open.zip` (sha verified), extracted `data/pivot/data/*`, `docs/*`, `MANIFEST.txt`
+- `outputs/QUICK_RESULTS.md`, `feature_audit.csv`, `classification_metrics.csv`, `external_metrics.csv`, `test_by_{{source,tier,scenario,urlslice}}_{{FULL,GOLDSILVER}}.csv`, `pca_results.csv`, `clustering_results.csv`
+- `outputs/figures/confusion_internal_full.png`, `confusion_hassan_full.png`, `internal_vs_external_gap.png`, `source_bias.png`, `pca_scree.png`, `cluster_pca_scatter.png`
+- Downloads: `data/phishvn/PhishVN_open.zip` (sha verified), extracted `data/phishvn/data/*`, `docs/*`, `MANIFEST.txt`
 """
-    (PIVOT / 'DECISION.md').write_text(decision, encoding='utf-8')
+    (OUT / 'DECISION.md').write_text(decision, encoding='utf-8')
 
 
 # ---------------------------------------------------------------- orchestrator
-def run_pivot(mode: str = 'full') -> int:
-    PIVOT.mkdir(parents=True, exist_ok=True)
-    PIVFIG.mkdir(parents=True, exist_ok=True)
+def run_pipeline(mode: str = 'full') -> int:
+    OUT.mkdir(parents=True, exist_ok=True)
+    FIG.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
-    print('[pivot] loading data...', flush=True)
+    print('[phishvn] loading data...', flush=True)
     vv = load_frames()
-    print('[pivot] audit...', flush=True)
+    print('[phishvn] audit...', flush=True)
     audit = run_audit(vv)
-    print(f"[pivot] audit: n={audit['n']} dups={audit['exact_url_dups']} "
+    print(f"[phishvn] audit: n={audit['n']} dups={audit['exact_url_dups']} "
           f"overlap={audit['domain_overlap']}", flush=True)
-    print('[pivot] quick benchmark (val selection)...', flush=True)
+    print('[phishvn] quick benchmark (val selection)...', flush=True)
     best = run_quick(vv)
     for k, b in best.items():
-        print(f"[pivot] best {k}: {b['model']} f1={b['f1']:.4f} acc={b['accuracy']:.4f}", flush=True)
-    print('[pivot] final test (once, frozen)...', flush=True)
+        print(f"[phishvn] best {k}: {b['model']} f1={b['f1']:.4f} acc={b['accuracy']:.4f}", flush=True)
+    print('[phishvn] final test (once, frozen)...', flush=True)
     fin = run_final_test(vv, best)
     print(fin.to_string(), flush=True)
-    print('[pivot] external evaluation (frozen, no tuning)...', flush=True)
+    print('[phishvn] external evaluation (frozen, no tuning)...', flush=True)
     ext = run_external({k: v['model'] for k, v in best.items()})
     print(ext[['external', 'model_subset', 'accuracy', 'rec']].to_string() if len(ext) else 'no external', flush=True)
     if mode == 'full':
-        print('[pivot] PCA + clustering...', flush=True)
+        print('[phishvn] PCA + clustering...', flush=True)
         run_pca_cluster(vv)
-    print('[pivot] figures...', flush=True)
+    print('[phishvn] figures...', flush=True)
     run_figures()
-    print('[pivot] reports...', flush=True)
+    print('[phishvn] reports...', flush=True)
     write_reports(audit, fin, ext)
-    print(f'[pivot] DONE in {time.time() - t0:.1f}s -> outputs/pivot/', flush=True)
+    print(f'[phishvn] DONE in {time.time() - t0:.1f}s -> outputs/', flush=True)
     return 0
