@@ -693,13 +693,13 @@ def run_supplementary(vv: pd.DataFrame | None = None) -> int:
 
 
 def run_data_analysis(vv: pd.DataFrame | None = None) -> int:
-    """EDA, feature ranking/selection, PCA, clustering, t-SNE on train -> outputs/DATA_ANALYSIS.md."""
+    """feature ranking/selection, PCA, clustering on train -> outputs/DATA_ANALYSIS.md."""
     from .analysis import run_analysis
     if vv is None:
         if _blocked():
             return 2
         vv = load_frames()
-    print('[phishvn] data analysis (EDA, feature selection, PCA, clustering, t-SNE)...', flush=True)
+    print('[phishvn] data analysis (feature selection, PCA, clustering)...', flush=True)
     t0 = time.time()
     OUT.mkdir(parents=True, exist_ok=True)
     run_analysis(vv, OUT, FIG)

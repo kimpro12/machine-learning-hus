@@ -1,14 +1,14 @@
 C,n_nonzero,val_macro_f1,val_auc,kept
 0.001,5,0.6320883826051403,0.7941628801510975,tld_len subdom_cnt digit_cnt dot_cnt dash_cnt
-0.0021544346900318843,6,0.6353606516242352,0.8762218425569351,dom_len subdom_cnt digit_cnt dot_cnt dash_cnt entropy
-0.004641588833612777,11,0.6978026836840875,0.8973357490675711,dom_len tld_len subdom_cnt digit_cnt dot_cnt dash_cnt letter_ratio spec_ratio slash_cnt entropy path_len
-0.01,11,0.7744311789613365,0.9017761485732702,dom_len tld_len subdom_cnt letter_cnt digit_cnt dot_cnt under_cnt spec_ratio slash_cnt entropy path_len
-0.021544346900318832,12,0.7823064749211297,0.9005221489404588,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt dot_cnt under_cnt spec_ratio slash_cnt entropy path_len
-0.046415888336127774,14,0.7833246915787592,0.9002134634700671,url_len dom_len tld_len subdom_cnt digit_cnt special_cnt dot_cnt dash_cnt under_cnt digit_ratio spec_ratio slash_cnt entropy path_len
-0.1,15,0.7833246915787592,0.8999225198346417,url_len dom_len tld_len subdom_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt digit_ratio spec_ratio slash_cnt entropy path_len
-0.21544346900318823,16,0.78203499894753,0.899661108494128,url_len dom_len tld_len subdom_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
-0.46415888336127775,16,0.780150455299347,0.8995808210764018,url_len dom_len tld_len subdom_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
-1.0,17,0.7802792049382727,0.8995365787790809,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
-2.154434690031882,17,0.7801130128169421,0.8995592613782151,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
-4.6415888336127775,17,0.7801130128169421,0.8995581384772676,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
-10.0,17,0.7801130128169421,0.899554601339284,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
+0.0021544346900318843,6,0.6353606516242352,0.8762229654578826,dom_len subdom_cnt digit_cnt dot_cnt dash_cnt entropy
+0.004641588833612777,11,0.6978026836840875,0.8973377702892762,dom_len tld_len subdom_cnt digit_cnt dot_cnt dash_cnt letter_ratio spec_ratio slash_cnt entropy path_len
+0.01,11,0.7744311789613365,0.9017691304423499,dom_len tld_len subdom_cnt letter_cnt digit_cnt dot_cnt under_cnt spec_ratio slash_cnt entropy path_len
+0.021544346900318832,12,0.7823064749211297,0.9005224296656955,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt dot_cnt under_cnt spec_ratio slash_cnt entropy path_len
+0.046415888336127774,14,0.7833246915787592,0.9002116106835042,url_len dom_len tld_len subdom_cnt digit_cnt special_cnt dot_cnt dash_cnt under_cnt digit_ratio spec_ratio slash_cnt entropy path_len
+0.1,15,0.7833246915787592,0.8999222391094048,url_len dom_len tld_len subdom_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt digit_ratio spec_ratio slash_cnt entropy path_len
+0.21544346900318823,16,0.7817400382935635,0.8996587504021389,url_len dom_len tld_len subdom_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
+0.46415888336127775,16,0.780150455299347,0.899571894013871,url_len dom_len tld_len subdom_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
+1.0,17,0.7802792049382727,0.8995514572166315,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
+2.154434690031882,17,0.7801130128169421,0.8995519063770108,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
+4.6415888336127775,17,0.7801130128169421,0.8995535345833843,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len
+10.0,17,0.7801130128169421,0.8995725116093922,url_len dom_len tld_len subdom_cnt letter_cnt digit_cnt special_cnt qm_cnt dot_cnt dash_cnt under_cnt letter_ratio digit_ratio spec_ratio slash_cnt entropy path_len

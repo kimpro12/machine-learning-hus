@@ -12,7 +12,7 @@ README này viết cho người **chưa biết gì về repo**. Đọc từ trê
 1. [Bài toán](#1-bài-toán)
 2. [Dữ liệu](#2-dữ-liệu)
 3. [Xử lý dữ liệu](#3-xử-lý-dữ-liệu-từng-bước)
-4. [Phân tích dữ liệu: EDA, chọn feature, PCA, phân cụm](#4-phân-tích-dữ-liệu-eda-chọn-feature-pca-phân-cụm)
+4. [Phân tích dữ liệu: chọn feature, PCA, phân cụm](#4-phân-tích-dữ-liệu-chọn-feature-pca-phân-cụm)
 5. [Mô hình](#5-mô-hình)
 6. [Đánh giá thế nào cho đúng](#6-đánh-giá-thế-nào-cho-đúng)
 7. [Kết quả](#7-kết-quả)
@@ -121,7 +121,7 @@ URL thô ──► kiểm tra dữ liệu ──► bỏ "http(s)://" ──► 
         ──► điền giá trị thiếu ──► chuẩn hóa (StandardScaler) ──► model
 ```
 
-Mỗi bước dưới đây trả lời ba câu: **làm gì**, **tại sao**, và **ví dụ**. Sau khi có 21 feature, [mục 4](#4-phân-tích-dữ-liệu-eda-chọn-feature-pca-phân-cụm) phân tích kỹ chính các feature này (EDA, chọn feature, PCA, phân cụm).
+Mỗi bước dưới đây trả lời ba câu: **làm gì**, **tại sao**, và **ví dụ**. Sau khi có 21 feature, [mục 4](#4-phân-tích-dữ-liệu-chọn-feature-pca-phân-cụm) phân tích kỹ chính các feature này (chọn feature, PCA, phân cụm).
 
 ### 3.1 Kiểm tra dữ liệu (audit)
 - **Làm gì:** đếm URL trùng lặp, kiểm tra không domain nào xuất hiện ở hai split, kiểm tra giá trị thiếu, so sánh từng cột giữa hai nhãn.
@@ -222,67 +222,25 @@ Cùng một trang Shopee thật, chỉ thêm `www.` mà bị coi là lừa đả
 
 ---
 
-## 4. Phân tích dữ liệu (EDA, chọn feature, PCA, phân cụm)
+## 4. Phân tích dữ liệu (chọn feature, PCA, phân cụm)
 
 Mục 3 biến URL thành 21 con số. Trước khi đưa vào model, ta cần **hiểu chính 21 con số đó**: feature nào thật sự khác nhau giữa phishing và benign, feature nào thừa, dữ liệu có cấu trúc nhóm tự nhiên không, và cấu trúc đó phản ánh phishing hay phản ánh thứ khác. Mục này trả lời các câu hỏi đó bằng các kỹ thuật thống kê và học không giám sát.
 
 Quy ước cho cả mục:
-- **Chỉ dùng tập train** (36,909 URL) để tính toán. Val chỉ dùng để chấm điểm ở các thí nghiệm có nhãn (4.2–4.3). **Test không được đụng tới.**
-- Các phương pháp dựa trên khoảng cách (PCA, phân cụm, t-SNE) dùng dữ liệu đã qua `log1p` rồi `StandardScaler`. Lý do nằm ở 4.1. Ví dụ với URL A: `url_len` = 42 → log1p(42) = 3.76. Trên train, log1p(`url_len`) có trung bình 2.78 và độ lệch chuẩn 0.34, nên A có z = (3.76 − 2.78) / 0.34 ≈ **2.9**.
+- **Chỉ dùng tập train** (36,909 URL) để tính toán. Val chỉ dùng để chấm điểm ở các thí nghiệm có nhãn (4.1, và AUC từng thành phần ở 4.2). **Test không được đụng tới.**
+- Các phương pháp dựa trên khoảng cách (PCA, phân cụm) dùng dữ liệu đã qua `log1p` rồi `StandardScaler`. Lý do: các feature đếm lệch rất mạnh. 11/21 feature có hơn 50% giá trị bằng 0 (ví dụ `query_len` bằng 0 ở 99.9% URL), nhưng vài URL có giá trị rất lớn. Nếu để nguyên, vài giá trị cực lớn sẽ lấn át khoảng cách. `log1p(x) = log(1 + x)` giữ 0 là 0 và nén giá trị lớn lại (10 → 2.4, 100 → 4.6). Ví dụ với URL A: `url_len` = 42 → log1p(42) = 3.76. Trên train, log1p(`url_len`) có trung bình 2.78 và độ lệch chuẩn 0.34, nên A có z = (3.76 − 2.78) / 0.34 ≈ **2.9**.
 - Code: `src/phishing_ml/analysis.py`. Chạy riêng: `python -m phishing_ml.cli analysis` (≈2 phút). Báo cáo đầy đủ với mọi bảng số: `outputs/DATA_ANALYSIS.md`.
 
-### 4.1 Khám phá dữ liệu (EDA)
-- **Làm gì:** với từng feature, tính trung bình và trung vị riêng cho benign và phishing, độ lệch (skew), tỷ lệ giá trị bằng 0, tỷ lệ ngoại lai, và tương quan giữa các cặp feature.
-- **Tại sao:** đây là bước "nhìn dữ liệu" trước khi làm gì khác. Nó cho biết feature nào hứa hẹn, feature nào vô dụng, và dữ liệu cần xử lý thế nào trước khi dùng.
-
-**Effect size (Cohen's d)** đo mức khác nhau giữa hai lớp, tính theo đơn vị độ lệch chuẩn:
-
-```text
-d = (trung bình phishing − trung bình benign) / độ lệch chuẩn gộp
-```
-
-Quy ước thường dùng: |d| ≈ 0.2 là nhỏ, 0.5 là vừa, ≥ 0.8 là lớn. Dấu `+` nghĩa là phishing có giá trị lớn hơn.
-
-*Ví dụ tính tay* với `digit_ratio` (tỷ lệ chữ số trong URL): trung bình benign 0.010, phishing 0.101, độ lệch chuẩn gộp 0.102, nên d = (0.101 − 0.010) / 0.102 ≈ **+0.89**. URL phishing chứa nhiều chữ số hơn rõ rệt. URL A có `digit_ratio` = 0.12 (5 chữ số `12345` trên 42 ký tự), còn B bằng 0.
-
-| Feature | TB benign | TB phishing | Effect size d | Ý nghĩa |
-|---|---|---|---|---|
-| `digit_ratio` | 0.010 | 0.101 | **+0.89** | Phishing nhiều chữ số hơn |
-| `tld_len` | 4.25 | 3.10 | **−0.84** | Benign hay có đuôi dài kiểu `gov.vn`, `com.vn` (độ dài 6); phishing đa số là `.com` (3) |
-| `digit_cnt` | 0.13 | 1.34 | +0.80 | Như `digit_ratio` |
-| `letter_ratio` | 0.87 | 0.79 | −0.79 | Phishing ít chữ cái hơn (vì nhiều chữ số, ký tự đặc biệt) |
-| `entropy` | 3.28 | 3.28 | +0.02 | Trung bình gần như bằng nhau (nhưng xem 4.2) |
-
-Những điều EDA phát hiện:
-- **Dữ liệu lệch rất mạnh.** 11/21 feature có hơn 50% giá trị bằng 0, và 8/21 feature có skew > 5 (phân phối chuẩn có skew = 0). Ví dụ `query_len` bằng 0 ở 99.9% URL, nhưng có URL dài hàng trăm ký tự. Với các phương pháp dựa trên khoảng cách, vài giá trị cực lớn sẽ lấn át tất cả. Vì vậy ta dùng `log1p(x) = log(1 + x)`: 0 vẫn là 0, 10 thành 2.4, 100 chỉ còn 4.6.
-- **`is_ip` luôn bằng 0** trên toàn bộ dataset (không có URL nào dùng địa chỉ IP làm host). Feature không bao giờ thay đổi thì không mang thông tin gì.
-- **Có feature trùng thông tin:** `url_len` và `letter_cnt` tương quan r = 0.95 (URL dài thì nhiều chữ cái); `letter_ratio` và `digit_ratio` tương quan r = −0.96 (ký tự không là chữ cái thì thường là chữ số). Giữ cả hai trong mỗi cặp là thừa.
-
-Hình: `outputs/figures/eda_distributions.png` (histogram từng feature theo nhãn), `outputs/figures/eda_correlation.png` (ma trận tương quan). Số liệu: `outputs/eda_feature_stats.csv`.
-
-### 4.2 Xếp hạng feature: feature nào quan trọng nhất?
-- **Làm gì:** chấm điểm từng feature theo ba cách, rồi so sánh thứ hạng.
-- **Tại sao:** mỗi cách nhìn một khía cạnh khác. Khi các cách không đồng ý với nhau, ta học được điều gì đó về dữ liệu.
-
-| Cách chấm | Đo cái gì | Hạn chế |
-|---|---|---|
-| **ANOVA F** | Trung bình của hai lớp chênh nhau bao nhiêu so với độ dao động bên trong mỗi lớp | Chỉ nhìn trung bình. Hai lớp có trung bình bằng nhau thì F ≈ 0, dù phân phối khác hẳn nhau |
-| **Mutual information (MI)** | Biết giá trị của feature thì bớt được bao nhiêu "không chắc chắn" về nhãn. MI = 0 nghĩa là feature và nhãn độc lập | Bắt được mọi kiểu quan hệ, kể cả phi tuyến; nhưng chỉ nhìn từng feature riêng lẻ |
-| **AUC của một feature** | Train Logistic Regression chỉ với đúng feature đó, đo ROC-AUC trên val. 0.5 = vô dụng, 1 = hoàn hảo | Phụ thuộc vào model tuyến tính |
-
-Kết quả (đầy đủ trong `outputs/feature_ranking.csv`):
-- Top 5 theo MI: `tld_len`, `dot_cnt`, `letter_ratio`, `entropy`, `digit_ratio`.
-- **`entropy` xếp hạng 4 theo MI nhưng hạng 19 theo ANOVA.** Ở 4.1 ta thấy trung bình entropy của hai lớp bằng nhau (3.28), nên ANOVA "chê" nó. Nhưng MI cho thấy phân phối entropy của hai lớp vẫn khác nhau, chỉ là khác về **hình dạng** chứ không về trung bình. Đây là ví dụ cụ thể của **quan hệ phi tuyến** mà ANOVA bỏ sót.
-- Các feature đếm tham số truy vấn (`query_len`, `eq_cnt`, `amp_cnt`, `under_cnt`) có MI ≈ 0 và AUC ≈ 0.50: gần như vô dụng khi đứng một mình, vì 99.9% URL không có tham số. URL A (có `?id=12345`) thuộc số rất ít ngoại lệ.
-
-### 4.3 Chọn feature: cần bao nhiêu feature là đủ?
-- **Làm gì:** hai cách bỏ bớt feature.
-  1. **Top-k theo MI:** xếp feature theo MI (4.2), lần lượt train Logistic Regression với 1, 2, …, 21 feature đầu, đo macro-F1 trên val.
-  2. **L1 / Lasso:** thêm vào hàm mất mát một khoản phạt bằng tổng |trọng số|. Khoản phạt này đẩy trọng số của feature yếu về **đúng 0**, tức feature bị loại ngay trong lúc train. Hệ số `C` càng nhỏ thì phạt càng nặng và càng ít feature sống sót. Thử 13 giá trị C từ 0.001 đến 10.
+### 4.1 Xếp hạng và chọn feature: feature nào quan trọng, cần bao nhiêu là đủ?
+- **Làm gì:**
+  1. **Xếp hạng bằng mutual information (MI):** với mỗi feature, đo xem biết giá trị của nó thì bớt được bao nhiêu "không chắc chắn" về nhãn. MI = 0 nghĩa là feature và nhãn độc lập (feature vô dụng); MI càng lớn thì feature càng mang nhiều thông tin về nhãn. MI bắt được mọi kiểu quan hệ, kể cả phi tuyến.
+  2. **Top-k theo MI:** lần lượt train Logistic Regression với 1, 2, …, 21 feature có MI cao nhất, đo macro-F1 trên val.
+  3. **L1 / Lasso:** thêm vào hàm mất mát một khoản phạt bằng tổng |trọng số|. Khoản phạt này đẩy trọng số của feature yếu về **đúng 0**, tức feature bị loại ngay trong lúc train. Hệ số `C` càng nhỏ thì phạt càng nặng và càng ít feature sống sót. Thử 13 giá trị C từ 0.001 đến 10.
 - **Tại sao:** model ít feature hơn thì đơn giản hơn, dễ giải thích hơn, và cho biết thông tin thật sự nằm ở đâu.
 
-Kết quả (hình `outputs/figures/feature_selection.png`):
-- Dùng đủ 21 feature: val macro-F1 = 0.780. Chỉ **9 feature** đầu đã cách mức tốt nhất không quá 0.005.
+Kết quả (hình `outputs/figures/feature_selection.png`; số liệu `outputs/feature_ranking.csv`, `outputs/feature_selection_curve.csv`, `outputs/l1_path.csv`):
+- **Top 5 theo MI:** `tld_len`, `dot_cnt`, `letter_ratio`, `entropy`, `digit_ratio`. Các feature đếm tham số truy vấn (`query_len`, `eq_cnt`, `amp_cnt`, `under_cnt`) có MI ≈ 0, vì 99.9% URL không có tham số. URL A (có `?id=12345`) thuộc số rất ít ngoại lệ.
+- **Đường cong top-k:** dùng đủ 21 feature đạt val macro-F1 = 0.780. Chỉ **9 feature** đầu đã cách mức tốt nhất không quá 0.005.
 - **Phát hiện quan trọng:** đường cong gần như phẳng ở mức 0.60 với 1–8 feature, rồi **nhảy +0.18 lên 0.78 đúng lúc thêm feature thứ 9 là `subdom_cnt`**. Như đã nói ở 3.3, `www` được tính là 1 subdomain. Đếm trên train:
 
   | `subdom_cnt` | Benign | Phishing |
@@ -294,11 +252,9 @@ Kết quả (hình `outputs/figures/feature_selection.png`):
   Khi có đúng 1 subdomain (đa số là `www.`), tỷ lệ phishing là 81%. Phần lớn sức mạnh của 21 feature số đến từ dấu vết thu thập `www.` ở mục 3.8, chứ không phải từ "hình dạng" của URL lừa đảo. Ví dụ C cho thấy điều này: `www.shopee.vn` có `subdom_cnt` = 1, còn `shopee.vn` có `subdom_cnt` = 0.
 - **L1:** với C = 0.02, model chỉ giữ **12/21 feature** mà val macro-F1 = 0.782, ngang mức tốt nhất. Có thể bỏ gần một nửa số feature mà không mất gì.
 
-Số liệu: `outputs/feature_selection_curve.csv`, `outputs/l1_path.csv`.
-
-### 4.4 PCA (phân tích thành phần chính)
+### 4.2 PCA (phân tích thành phần chính)
 - **Làm gì:** PCA "xoay" hệ trục tọa độ 21 chiều sao cho trục thứ nhất (PC1) nằm theo hướng dữ liệu trải rộng nhất, PC2 theo hướng trải rộng nhất còn lại (vuông góc với PC1), và cứ thế tiếp. Mỗi PC là một tổ hợp tuyến tính của 21 feature, ví dụ `PC1 = 0.39·letter_cnt + 0.39·url_len + 0.33·special_cnt + …`. Các hệ số này gọi là **loading**: loading lớn nghĩa là feature đó đóng góp nhiều vào PC.
-- **Tại sao:** (1) giảm chiều: nếu vài PC đầu giữ được gần hết phương sai thì bỏ được các PC sau; (2) gộp các feature trùng thông tin (4.1); (3) vẽ dữ liệu 21 chiều lên mặt phẳng 2D.
+- **Tại sao:** (1) giảm chiều: nếu vài PC đầu giữ được gần hết phương sai thì bỏ được các PC sau; (2) gộp các feature trùng thông tin (ví dụ `url_len` và `letter_cnt` tương quan 0.95); (3) vẽ dữ liệu 21 chiều lên mặt phẳng 2D.
 
 **Phải chuẩn hóa trước PCA.** So sánh ba cách tiền xử lý:
 
@@ -331,7 +287,7 @@ PC hữu ích nhất là PC3, không phải PC1. PCA chọn hướng theo **phư
 
 Hình 2D: `outputs/figures/pca_2d_label_source.png`, chiếu train lên PC1–PC2, một bên tô màu theo nhãn, một bên theo nguồn. Số liệu: `outputs/pca_scaling_comparison.csv`, `outputs/pca_loadings.csv`, `outputs/pca_component_auc.csv`.
 
-### 4.5 Phân cụm (K-Means, GMM)
+### 4.3 Phân cụm (K-Means, GMM)
 - **Làm gì:** gom URL thành k nhóm **mà không dùng nhãn**, rồi xem các nhóm đó là gì.
 - **Tại sao:** nếu URL phishing và benign tự tách thành hai nhóm, bài toán sẽ dễ. Nếu không, ta muốn biết dữ liệu tự chia theo tiêu chí nào.
 
@@ -389,22 +345,14 @@ Cùng một trang Shopee mà nằm ở hai cụm khác nhau, chỉ vì có hay k
 
 Số liệu: `outputs/clustering_selection.csv`, `outputs/clustering_ward.csv`, `outputs/cluster_profiles.csv`.
 
-### 4.6 t-SNE (trực quan hóa)
-- **Làm gì:** t-SNE chiếu dữ liệu 21 chiều xuống 2D sao cho **các URL gần nhau ở không gian gốc vẫn gần nhau trên hình**. Chạy trên 4,000 URL lấy mẫu.
-- **Tại sao:** PCA là phép chiếu tuyến tính nên có thể làm các nhóm chồng lên nhau. t-SNE giữ được các nhóm nhỏ cục bộ.
-- **Lưu ý khi đọc:** trên hình t-SNE, khoảng cách giữa các đảo và kích thước của đảo **không có ý nghĩa định lượng**. t-SNE chỉ dùng để nhìn, không dùng làm feature.
-- **Kết quả** (`outputs/figures/tsne_label_source.png`, bên trái tô màu theo nhãn, bên phải theo nguồn): URL benign tạo thành vài đảo riêng, và **đảo của tinnhiem tách khỏi đảo của Tranco**. Ở một vùng lớn bên trái, URL Tranco (benign) trộn lẫn với URL phishing. Điều này khớp với kết quả leave-one-source-out ([6.5](#65-kiểm-tra-model-có-học-vẹt-nguồn-không-leave-one-source-out)): Tranco là nguồn model nhận diện kém nhất.
-
-### 4.7 Tóm tắt: phân tích dữ liệu dẫn tới quyết định gì
+### 4.4 Tóm tắt: phân tích dữ liệu dẫn tới quyết định gì
 
 | Phát hiện | Hệ quả |
 |---|---|
-| Feature lệch mạnh, nhiều số 0 (4.1) | Dùng `log1p` trước PCA và phân cụm; thử `log1p`, winsorize, QuantileTransformer trong thí nghiệm ([7.2](#72-thí-nghiệm-bổ-sung-cách-xử-lý-dữ-liệu-ảnh-hưởng-thế-nào)) |
-| `is_ip` hằng số; hai cặp feature trùng nhau (4.1) | Thử lọc tương quan và chọn feature: bỏ được mà không mất gì |
-| Quan hệ phi tuyến như `entropy` (4.2) | Thử rời rạc hóa và feature đa thức để model tuyến tính "uốn cong" được |
-| Sức mạnh của feature số phần lớn đến từ `subdom_cnt`, tức `www.` (4.3) | Thử bỏ `www.` trước khi trích feature (3.8) |
-| PC hữu ích nhất không phải PC1 (4.4) | PCA không phù hợp để giảm chiều cho bài toán này |
-| Cụm khớp với nguồn hơn với nhãn (4.5–4.6) | Phải kiểm tra leave-one-source-out (6.5) và dữ liệu ngoài (6.4) |
+| Feature lệch mạnh, nhiều số 0 (phần mở đầu mục 4) | Dùng `log1p` trước PCA và phân cụm; thử `log1p`, winsorize, QuantileTransformer trong thí nghiệm ([7.2](#72-thí-nghiệm-bổ-sung-cách-xử-lý-dữ-liệu-ảnh-hưởng-thế-nào)) |
+| Sức mạnh của feature số phần lớn đến từ `subdom_cnt`, tức `www.` (4.1) | Thử bỏ `www.` trước khi trích feature (3.8) |
+| PC hữu ích nhất không phải PC1 (4.2) | PCA không phù hợp để giảm chiều cho bài toán này |
+| Cụm khớp với nguồn hơn với nhãn (4.3) | Phải kiểm tra leave-one-source-out (6.5) và dữ liệu ngoài (6.4) |
 
 ---
 
@@ -438,13 +386,13 @@ Kết quả chọn trên FULL: **Logistic Regression C = 10**. Code: `grids()`, 
 - **Làm gì:** gộp 21 feature thành ít "thành phần chính" hơn, mỗi thành phần là tổ hợp tuyến tính của các feature cũ, chọn theo hướng dữ liệu biến thiên nhiều nhất.
 - **Tại sao thử:** nhiều feature trùng thông tin nhau (`letter_cnt` và `url_len` tương quan 0.95). Ít chiều hơn thì model nhanh hơn và dễ vẽ hình.
 - **Câu hỏi:** giảm chiều có làm mất thông tin phân biệt phishing không?
-- Cách PCA hoạt động, loadings và vì sao PC1 không phải PC hữu ích nhất: xem [4.4](#44-pca-phân-tích-thành-phần-chính).
+- Cách PCA hoạt động, loadings và vì sao PC1 không phải PC hữu ích nhất: xem [4.2](#42-pca-phân-tích-thành-phần-chính).
 
 ### 5.7 K-Means và GMM (phân cụm)
 - **Làm gì:** gom URL thành nhóm theo độ giống nhau, **không dùng nhãn**. K-Means chia thành k cụm dựa trên khoảng cách tới tâm cụm; GMM (Gaussian Mixture) coi mỗi cụm là một "đám mây" hình elip và cho phép cụm chồng lấn.
 - **Tại sao thử:** xem dữ liệu có tự chia thành "nhóm phishing" và "nhóm benign" không.
 - **Đo bằng ARI** (Adjusted Rand Index): bằng 1 nếu các cụm khớp hoàn toàn với nhãn, bằng 0 nếu chỉ khớp như chia ngẫu nhiên.
-- Cách chọn k, hồ sơ từng cụm và đối chiếu cụm với nguồn dữ liệu: xem [4.5](#45-phân-cụm-k-means-gmm).
+- Cách chọn k, hồ sơ từng cụm và đối chiếu cụm với nguồn dữ liệu: xem [4.3](#43-phân-cụm-k-means-gmm).
 
 ---
 
@@ -528,7 +476,7 @@ Các kỹ thuật xử lý dữ liệu kinh điển trên 21 feature số (mỗi
 | L1 / Lasso (C = 0.05) | 0.897 | −0.001 [−0.002, −0.001] | Kém hơn rất ít |
 | Rời rạc hóa (10 bin + one-hot) | 0.894 | −0.004 [−0.007, −0.001] | Kém hơn rất ít |
 | Undersampling / oversampling | 0.857 | −0.041 | Kém hơn ở ngưỡng 0.5 (giống `class_weight`: chỉ dịch ngưỡng) |
-| PCA 95% (10 thành phần) | 0.806 | **−0.092** | Kém hơn rõ rệt (hướng hữu ích có phương sai nhỏ, xem 4.4) |
+| PCA 95% (10 thành phần) | 0.806 | **−0.092** | Kém hơn rõ rệt (hướng hữu ích có phương sai nhỏ, xem 4.2) |
 
 Rút ra:
 1. **Đọc trực tiếp chuỗi URL (TF-IDF) tốt hơn hẳn 21 feature đếm.**
@@ -554,7 +502,7 @@ Project/
 │   ├── preprocess.py             ← imputer → scaler → model     (mục 3.5–3.6)
 │   ├── pipeline.py               ← toàn bộ benchmark chính      (mục 5–7.1)
 │   ├── experiments.py            ← thí nghiệm bổ sung          (mục 3.7–3.8, 7.2)
-│   ├── analysis.py               ← EDA, chọn feature, PCA, phân cụm, t-SNE (mục 4)
+│   ├── analysis.py               ← chọn feature, PCA, phân cụm (mục 4)
 │   ├── transformers.py           ← cắt ngoại lai, lọc tương quan, cụm làm feature, resampling
 │   ├── evaluate.py               ← metric + khoảng tin cậy      (mục 6.2–6.3)
 │   └── download.py               ← tải dữ liệu Hassan + JPCERT
@@ -566,7 +514,7 @@ Project/
 │   ├── DECISION.md               ← kết luận benchmark chính
 │   ├── QUICK_RESULTS.md          ← số liệu theo từng bước
 │   ├── EXPERIMENTS.md            ← thí nghiệm bổ sung
-│   ├── DATA_ANALYSIS.md          ← phân tích dữ liệu (EDA, chọn feature, PCA, phân cụm)
+│   ├── DATA_ANALYSIS.md          ← phân tích dữ liệu (chọn feature, PCA, phân cụm)
 │   ├── *.csv                     ← bảng số liệu
 │   └── figures/                  ← hình
 └── archive/phiusiil/             ← thí nghiệm cũ trên dataset UCI PhiUSIIL (không thuộc đề tài chính)
@@ -584,7 +532,7 @@ Project/
 | 5 | `run_external` | Chấm trên Hassan, JPCERT (6.4) | `external_metrics.csv` |
 | 6 | `run_pca_cluster` | PCA, K-Means, GMM (5.6–5.7) | `pca_results.csv`, `clustering_results.csv` |
 | 7 | `run_figures`, `write_reports` | Vẽ hình, viết báo cáo | `figures/`, `DECISION.md`, `QUICK_RESULTS.md` |
-| 8 | `run_data_analysis` → `analysis.py` | Phân tích dữ liệu (mục 4). Bỏ qua khi `--mode quick` | `DATA_ANALYSIS.md`, `eda_*.csv`, `feature_*.csv`, `pca_*.csv`, `clustering_*.csv`, `cluster_profiles.csv` |
+| 8 | `run_data_analysis` → `analysis.py` | Phân tích dữ liệu (mục 4). Bỏ qua khi `--mode quick` | `DATA_ANALYSIS.md`, `feature_*.csv`, `pca_*.csv`, `clustering_*.csv`, `cluster_profiles.csv` |
 | 9 | `run_supplementary` → `experiments.py` | Thí nghiệm bổ sung (7.2). Bỏ qua khi `--mode quick` | `EXPERIMENTS.md` và các CSV, hình đi kèm |
 
 ---
@@ -607,7 +555,7 @@ pip install -e ".[dev]"
 ```bash
 python -m phishing_ml.cli run --mode quick   # benchmark chính, ≈1 phút
 python -m phishing_ml.cli run                # + PCA, phân cụm, phân tích dữ liệu, thí nghiệm bổ sung, ≈8 phút
-python -m phishing_ml.cli analysis           # chỉ phân tích dữ liệu (EDA, chọn feature, PCA, phân cụm), ≈2 phút
+python -m phishing_ml.cli analysis           # chỉ phân tích dữ liệu (chọn feature, PCA, phân cụm), ≈2 phút
 python -m phishing_ml.cli experiments        # chỉ thí nghiệm bổ sung (21 cách xử lý), ≈6 phút
 ```
 Kết quả ghi đè vào `outputs/`. Seed cố định (42), nên chạy lại ra cùng số liệu (chỉ cột thời gian chạy `fit_s` thay đổi). Nếu thiếu dữ liệu, lệnh in `BLOCKED` kèm danh sách file thiếu.
@@ -622,7 +570,7 @@ Kết quả ghi đè vào `outputs/`. Seed cố định (42), nên chạy lại 
 |---|---|
 | Kết luận đầy đủ của benchmark chính | `outputs/DECISION.md` |
 | Số liệu từng bước, phân tích theo nguồn và tier | `outputs/QUICK_RESULTS.md`, `outputs/test_by_*.csv` |
-| Phân tích dữ liệu: EDA, chọn feature, PCA, phân cụm, t-SNE | `outputs/DATA_ANALYSIS.md` |
+| Phân tích dữ liệu: chọn feature, PCA, phân cụm | `outputs/DATA_ANALYSIS.md` |
 | Chi tiết thí nghiệm tiền xử lý, `www.`, leave-one-source-out | `outputs/EXPERIMENTS.md` |
 | Hình | `outputs/figures/`, nên xem trước: `internal_vs_external_gap.png`, `source_bias.png`, `preprocessing_ablation.png`, `leave_one_source_out.png` |
 | Dataset được xây dựng thế nào, nhiễu nhãn ra sao | `data/phishvn/README.md`, `data/phishvn/docs/datasheet.md` |

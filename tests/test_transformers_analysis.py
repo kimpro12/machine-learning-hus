@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from phishing_ml.analysis import _profile_text, eda, prep_pipeline
+from phishing_ml.analysis import _profile_text, prep_pipeline
 from phishing_ml.features import PHISHVN_FEATURES
 from phishing_ml.transformers import CorrelationFilter, KMeansOneHot, Winsorizer, resample_indices
 
@@ -49,17 +49,6 @@ def test_prep_pipeline_fits_on_train_only():
     pp.transform(te)
     assert np.allclose(pp.named_steps['scale'].mean_, mean_before)
     assert np.allclose(mean_before, np.log1p([0.0, 1.0, 3.0]).mean())
-
-
-def test_eda_effect_size_sign_and_constant_feature():
-    n = 50
-    tr = pd.DataFrame({c: np.zeros(2 * n) for c in PHISHVN_FEATURES})
-    tr['digit_cnt'] = [0.0] * n + [5.0] * (n - 1) + [6.0]
-    tr['label'] = [0] * n + [1] * n
-    st = eda(tr).set_index('feature')
-    assert st.loc['digit_cnt', 'effect_size_d'] > 0      # phishing has more digits
-    assert st.loc['is_ip', 'effect_size_d'] == 0.0       # constant -> no effect, no crash
-    assert st.loc['is_ip', 'pct_zero'] == 1.0
 
 
 def test_profile_text_mentions_www_and_query():
