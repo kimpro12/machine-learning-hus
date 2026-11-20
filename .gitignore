@@ -1,0 +1,21 @@
+# data
+data/raw/
+data/processed/
+data/external/
+raw_dl/
+*.zip
+# outputs: track reports/metrics/figures (small); models stay ignored via *.joblib
+# models
+*.joblib
+*.pkl
+# python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+# PhishVN release data (download from Mendeley DOI 10.17632/b97hxbxtpd.4); keep docs only
+data/pivot/data/
+# tool caches
+.pytest_cache/
+.ruff_cache/
+.claude/

@@ -1,0 +1,6 @@
+source,slice_col,subset,n,phish_rate,accuracy,prec,rec,spec,f1,macro_f1,roc,TN,FP,FN,TP,acc_lo,acc_hi,tiny_n_flag
+tinnhiem_web,source,GOLDSILVER,2246,0.0,0.9969,0.0,0.0,0.9969,0.0,0.4992,,2239,7,0,0,0.9936,0.9987,False
+tranco,source,GOLDSILVER,888,0.0,0.955,0.0,0.0,0.955,0.0,0.4885,,848,40,0,0,0.9392,0.9676,False
+tinnhiemmang,source,GOLDSILVER,487,1.0,0.3183,1.0,0.3183,0.0,0.4829,0.2414,,0,0,332,155,0.2771,0.3617,False
+tinnhiem_org,source,GOLDSILVER,358,0.0,0.9888,0.0,0.0,0.9888,0.0,0.4972,,354,4,0,0,0.9716,0.9969,False
+tranco_vn,source,GOLDSILVER,353,0.0,0.9972,0.0,0.0,0.9972,0.0,0.4993,,352,1,0,0,0.9843,0.9999,False

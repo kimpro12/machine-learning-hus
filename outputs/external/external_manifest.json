@@ -1,0 +1,10 @@
+{
+  "hassan_url": "https://raw.githubusercontent.com/Hassan-Albattra/URL_Phishing_Detection_Dataset/main/balanced_urls.csv",
+  "hassan_provenance": "Hassan-Albattra/URL_Phishing_Detection_Dataset balanced_urls.csv; phishing from PhishTank + OpenPhish, legitimate from Alexa Top Sites + Common Crawl, collected Jan-Dec 2023; MIT; label column in {legitimate,phishing}, url column.",
+  "hassan_sha256": "8a864a7fb867cce6f2a3dfff9c11ad327a95b9fa01d9912ee6c9b918e24c3d4d",
+  "hassan_n": 340000,
+  "hassan_phish": 170000,
+  "hassan_legit": 170000,
+  "overlap_phiusiil": 10,
+  "note": "Labels used ONLY for evaluation, never for training/threshold tuning. Thresholds frozen from PhiUSIIL validation (0.5 default; tuned thresholds reported but not applied to external)."
+}

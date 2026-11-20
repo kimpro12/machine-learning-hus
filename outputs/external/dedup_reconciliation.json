@@ -1,0 +1,14 @@
+{
+  "n_raw": 235795,
+  "n_unique_normalized": 235150,
+  "n_removed": 645,
+  "n_dup_groups_623": 623,
+  "dist_count_minus1": {
+    "2": 605,
+    "3": 15,
+    "4": 2,
+    "5": 1
+  },
+  "explanation": "623 = number of distinct normalized URLs occurring >1 (groups). 645 = total surplus rows = sum(count-1) = 605*1+15*2+2*3+1*4. Kept 235150 = 235795-645. Exact full-row duplicates=425 (subset of normalized dups; differ in FILENAME/Title etc). Label conflicts=0 so quarantine=0.",
+  "exact_row_dups": 425
+}

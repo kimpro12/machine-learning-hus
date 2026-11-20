@@ -1,0 +1,399 @@
+{
+  "status": "KEEP_AS_BIAS_STUDY",
+  "academic_viability": true,
+  "real_world_validity": false,
+  "decision_reason": "Internal 99-100% does not generalize: frozen STRICT RF drops 99.81%->50.01% (-49.80pp) on independent Hassan 340k (340k URLs, 0.78% legit homepage overlap with PhiUSIIL=10 URLs); legit-with-path accuracy 0.0% (0/165085, CI [0,0.000022]); JPCERT 2025 phishing recall stays 99.84% only because model predicts phishing for any path. Direct leakage (USI constant 100 for legit; TLDLegitimateProb/URLCharProb corpus-dependent) + severe homepage-vs-deeplink sampling bias. Keep ONLY as bias/leakage case study with reframed RQs; CHANGE_DATASET for any deployment claim.",
+  "dataset_hash": "a236549cd369cd80bd478ff8e1779cbf44c58d5c3f79f7a51a1adbed7d06d1c6",
+  "best_model_full": {
+    "feature_set": "FULL_NUMERIC",
+    "model": "rf_mdNone_msl1",
+    "accuracy": 1.0,
+    "f1_phishing": 1.0,
+    "roc_auc": 1.0,
+    "n_train": 150496,
+    "n_test": 47030
+  },
+  "best_model_clean": {
+    "feature_set": "NO_SUSPECT_DERIVED",
+    "model": "rf_mdNone_msl1",
+    "accuracy": 1.0,
+    "f1_phishing": 1.0,
+    "roc_auc": 1.0
+  },
+  "best_model_strict": {
+    "feature_set": "URL_LEXICAL_STRICT",
+    "model": "rf_mdNone_msl3",
+    "accuracy": 0.998086,
+    "f1_phishing": 0.997752,
+    "roc_auc": 0.998556
+  },
+  "random_test_metrics": [
+    {
+      "feature_set": "FULL_NUMERIC",
+      "model": "rf_mdNone_msl1",
+      "split": "random",
+      "status": "OK",
+      "n_train": 150496,
+      "n_test": 47030,
+      "n_features": 78,
+      "fit_s": 11.36,
+      "n": 47030,
+      "prevalence_phishing": 0.426536,
+      "accuracy": 1.0,
+      "balanced_accuracy": 1.0,
+      "precision_phishing": 1.0,
+      "recall_phishing": 1.0,
+      "f1_phishing": 1.0,
+      "specificity": 1.0,
+      "TN": 26970,
+      "FP": 0,
+      "FN": 0,
+      "TP": 20060,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "acc_ci95_lo": 1.0,
+      "acc_ci95_hi": 1.0,
+      "f1_ci95_lo": 1.0,
+      "f1_ci95_hi": 1.0
+    },
+    {
+      "feature_set": "NO_SUSPECT_DERIVED",
+      "model": "rf_mdNone_msl1",
+      "split": "random",
+      "status": "OK",
+      "n_train": 150496,
+      "n_test": 47030,
+      "n_features": 73,
+      "fit_s": 13.67,
+      "n": 47030,
+      "prevalence_phishing": 0.426536,
+      "accuracy": 1.0,
+      "balanced_accuracy": 1.0,
+      "precision_phishing": 1.0,
+      "recall_phishing": 1.0,
+      "f1_phishing": 1.0,
+      "specificity": 1.0,
+      "TN": 26970,
+      "FP": 0,
+      "FN": 0,
+      "TP": 20060,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "acc_ci95_lo": 1.0,
+      "acc_ci95_hi": 1.0,
+      "f1_ci95_lo": 1.0,
+      "f1_ci95_hi": 1.0
+    },
+    {
+      "feature_set": "URL_LEXICAL_STRICT",
+      "model": "rf_mdNone_msl3",
+      "split": "random",
+      "status": "OK",
+      "n_train": 150496,
+      "n_test": 47030,
+      "n_features": 28,
+      "fit_s": 7.68,
+      "n": 47030,
+      "prevalence_phishing": 0.426536,
+      "accuracy": 0.998086,
+      "balanced_accuracy": 0.99777,
+      "precision_phishing": 0.9999,
+      "recall_phishing": 0.995613,
+      "f1_phishing": 0.997752,
+      "specificity": 0.999926,
+      "TN": 26968,
+      "FP": 2,
+      "FN": 88,
+      "TP": 19972,
+      "roc_auc": 0.998556,
+      "pr_auc": 0.998899,
+      "acc_ci95_lo": 0.9976,
+      "acc_ci95_hi": 0.9985,
+      "f1_ci95_lo": 0.9972,
+      "f1_ci95_hi": 0.9982
+    },
+    {
+      "feature_set": "STRICT_NO_COLLECTION_CUES",
+      "model": "rf_mdNone_msl1",
+      "split": "random",
+      "status": "OK",
+      "n_train": 150496,
+      "n_test": 47030,
+      "n_features": 18,
+      "fit_s": 10.26,
+      "n": 47030,
+      "prevalence_phishing": 0.426536,
+      "accuracy": 0.990687,
+      "balanced_accuracy": 0.990213,
+      "precision_phishing": 0.991139,
+      "recall_phishing": 0.986989,
+      "f1_phishing": 0.98906,
+      "specificity": 0.993437,
+      "TN": 26793,
+      "FP": 177,
+      "FN": 261,
+      "TP": 19799,
+      "roc_auc": 0.9974,
+      "pr_auc": 0.997519,
+      "acc_ci95_lo": 0.9898,
+      "acc_ci95_hi": 0.9915,
+      "f1_ci95_lo": 0.988,
+      "f1_ci95_hi": 0.99
+    }
+  ],
+  "domain_test_metrics": [
+    {
+      "feature_set": "FULL_NUMERIC",
+      "model": "rf_mdNone_msl1",
+      "split": "domain",
+      "status": "OK",
+      "n_train": 153565,
+      "n_test": 45018,
+      "n_features": 78,
+      "fit_s": 13.36,
+      "n": 45018,
+      "prevalence_phishing": 0.40275,
+      "accuracy": 1.0,
+      "balanced_accuracy": 1.0,
+      "precision_phishing": 1.0,
+      "recall_phishing": 1.0,
+      "f1_phishing": 1.0,
+      "specificity": 1.0,
+      "TN": 26887,
+      "FP": 0,
+      "FN": 0,
+      "TP": 18131,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "acc_ci95_lo": 1.0,
+      "acc_ci95_hi": 1.0,
+      "f1_ci95_lo": 1.0,
+      "f1_ci95_hi": 1.0
+    },
+    {
+      "feature_set": "NO_SUSPECT_DERIVED",
+      "model": "rf_mdNone_msl1",
+      "split": "domain",
+      "status": "OK",
+      "n_train": 153565,
+      "n_test": 45018,
+      "n_features": 73,
+      "fit_s": 14.7,
+      "n": 45018,
+      "prevalence_phishing": 0.40275,
+      "accuracy": 0.999956,
+      "balanced_accuracy": 0.999945,
+      "precision_phishing": 1.0,
+      "recall_phishing": 0.99989,
+      "f1_phishing": 0.999945,
+      "specificity": 1.0,
+      "TN": 26887,
+      "FP": 0,
+      "FN": 2,
+      "TP": 18129,
+      "roc_auc": 1.0,
+      "pr_auc": 1.0,
+      "acc_ci95_lo": 0.9999,
+      "acc_ci95_hi": 1.0,
+      "f1_ci95_lo": 0.9999,
+      "f1_ci95_hi": 1.0
+    },
+    {
+      "feature_set": "URL_LEXICAL_STRICT",
+      "model": "rf_mdNone_msl3",
+      "split": "domain",
+      "status": "OK",
+      "n_train": 153565,
+      "n_test": 45018,
+      "n_features": 28,
+      "fit_s": 8.33,
+      "n": 45018,
+      "prevalence_phishing": 0.40275,
+      "accuracy": 0.997756,
+      "balanced_accuracy": 0.997269,
+      "precision_phishing": 0.999667,
+      "recall_phishing": 0.99476,
+      "f1_phishing": 0.997208,
+      "specificity": 0.999777,
+      "TN": 26881,
+      "FP": 6,
+      "FN": 95,
+      "TP": 18036,
+      "roc_auc": 0.998382,
+      "pr_auc": 0.9987,
+      "acc_ci95_lo": 0.9973,
+      "acc_ci95_hi": 0.9982,
+      "f1_ci95_lo": 0.9967,
+      "f1_ci95_hi": 0.9977
+    },
+    {
+      "feature_set": "STRICT_NO_COLLECTION_CUES",
+      "model": "rf_mdNone_msl1",
+      "split": "domain",
+      "status": "OK",
+      "n_train": 153565,
+      "n_test": 45018,
+      "n_features": 18,
+      "fit_s": 9.36,
+      "n": 45018,
+      "prevalence_phishing": 0.40275,
+      "accuracy": 0.990115,
+      "balanced_accuracy": 0.989578,
+      "precision_phishing": 0.988618,
+      "recall_phishing": 0.986818,
+      "f1_phishing": 0.987717,
+      "specificity": 0.992338,
+      "TN": 26681,
+      "FP": 206,
+      "FN": 239,
+      "TP": 17892,
+      "roc_auc": 0.997163,
+      "pr_auc": 0.997173,
+      "acc_ci95_lo": 0.9892,
+      "acc_ci95_hi": 0.991,
+      "f1_ci95_lo": 0.9865,
+      "f1_ci95_hi": 0.9888
+    }
+  ],
+  "single_feature_proxy": {
+    "flag": true,
+    "top_acc": 0.9967839676802042,
+    "top_feature": "URLSimilarityIndex"
+  },
+  "collection_bias_flags": {
+    "SEVERE_COLLECTION_BIAS": true,
+    "rates": {
+      "is_https": {
+        "0": {
+          "mean": 1.0,
+          "num": 134850,
+          "den": 134850
+        },
+        "1": {
+          "mean": 0.48531405782652043,
+          "num": 48677,
+          "den": 100300
+        }
+      },
+      "has_www": {
+        "0": {
+          "mean": 1.0,
+          "num": 134850,
+          "den": 134850
+        },
+        "1": {
+          "mean": 0.4158125623130608,
+          "num": 41706,
+          "den": 100300
+        }
+      },
+      "path_present": {
+        "0": {
+          "mean": 0.0,
+          "num": 0,
+          "den": 134850
+        },
+        "1": {
+          "mean": 0.27022931206380857,
+          "num": 27104,
+          "den": 100300
+        }
+      },
+      "query_present": {
+        "0": {
+          "mean": 0.0,
+          "num": 0,
+          "den": 134850
+        },
+        "1": {
+          "mean": 0.06024925224327019,
+          "num": 6043,
+          "den": 100300
+        }
+      },
+      "IsHTTPS_raw": {
+        "0": {
+          "mean": 1.0,
+          "num": 134850,
+          "den": 134850
+        },
+        "1": {
+          "mean": 0.4902293120638086,
+          "num": 49170,
+          "den": 100300
+        }
+      },
+      "sim_ge_999": {
+        "0": {
+          "mean": 1.0,
+          "num": 134850,
+          "den": 134850
+        },
+        "1": {
+          "mean": 0.007836490528414756,
+          "num": 786,
+          "den": 100300
+        }
+      }
+    }
+  },
+  "recommendation": "KEEP_AS_BIAS_STUDY: retain PhiUSIIL only to teach leakage/ablation/domain-shift (RQ2-RQ4) with BENCHMARK_NOT_REAL_WORLD_VALIDATED banner; CHANGE_DATASET for any real-world phishing-detection claim.",
+  "limitations": [
+    "FULL_NUMERIC is optimistic (derived/crawled features, corpus-dependent).",
+    "URL_LEXICAL_STRICT still benefits from collection bias (homepage vs path).",
+    "No independent external labeled set; real-world validity NOT established.",
+    "Test holdout opened once post-freeze; no test-set tuning.",
+    "External Hassan source is a low-profile GitHub mirror (claims reputable upstreams; verified independent via 10-URL overlap + shifted distribution); JPCERTCC corroborates phishing side with high-trust CERT feed.",
+    "Internal legit-with-path slice is empty (n=0), so internal evaluation never tests the dominant real-world case."
+  ],
+  "next_steps": [
+    "Do not deploy URL-only RFs; they predict phishing for ~100% of external legitimate (specificity 0.02%).",
+    "For deployment: CHANGE_DATASET to time-split, vendor-diverse URLs with legitimate deep links + external validation.",
+    "If course requires techniques demo: keep as bias study (PCA/clustering/ablation already runnable)."
+  ],
+  "ci_correction": {
+    "internal_FULL_acc_percentile_CI": [
+      1.0,
+      1.0
+    ],
+    "internal_FULL_acc_exact_CI95": [
+      0.9999215663451824,
+      1.0
+    ],
+    "note": "Percentile bootstrap [1,1] for perfect accuracy is degenerate (all resamples 1.0); exact Clopper-Pearson gives [0.99992,1.0] for n=47030 (Rule of Three). All external/subgroup accuracies use exact CIs."
+  },
+  "external_validation": {
+    "primary": "Hassan-Albattra balanced_urls.csv (340k balanced, PhishTank/OpenPhish + Alexa/CommonCrawl Jan-Dec 2023, MIT, sha 8a864a7fb867cce6, overlap with PhiUSIIL 10 URLs)",
+    "secondary": "JPCERTCC phishurl-list 2025-01..06 (14775 phishing, CERT-verified, overlap 0)",
+    "protocol": "Frozen PhiUSIIL-trained RF pipelines applied as-is; URL features recomputed from strings only (extract_url_features); no threshold/label tuning on external.",
+    "strict_internal_acc": 0.998086,
+    "strict_hassan_acc": 0.500085,
+    "gap_pp": -49.8,
+    "nocues_internal_acc": 0.990687,
+    "nocues_hassan_acc": 0.499694,
+    "gap_pp_nocues": -49.1,
+    "hassan_strict_confusion": {
+      "TN": 30,
+      "FP": 169970,
+      "FN": 1,
+      "TP": 169999,
+      "prec": 0.50004,
+      "rec": 0.99999,
+      "f1": 0.6667,
+      "roc": 0.57982
+    },
+    "hassan_nocues_confusion": {
+      "TN": 31,
+      "FP": 169969,
+      "FN": 135,
+      "TP": 169865,
+      "prec": 0.49985,
+      "rec": 0.99921,
+      "f1": 0.66635,
+      "roc": 0.47811
+    },
+    "jpcert_strict_recall": 0.9984,
+    "jpcert_nocues_recall": 0.9952,
+    "subgroups": "See outputs/external/hassan_subgroups_STRICT.csv, internal_test_subgroups_STRICT.csv; legit_with_path internal n=0 (empty) vs hassan n=165085 acc 0.0%"
+  }
+}

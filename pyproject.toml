@@ -1,0 +1,38 @@
+[project]
+name = "phishing-ml"
+version = "1.0.0"
+description = "PhiUSIIL phishing detection: classification, PCA, clustering with leakage audit"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "pandas==2.2.3",
+  "numpy==2.1.3",
+  "scipy==1.17.0",
+  "scikit-learn==1.6.1",
+  "matplotlib==3.10.0",
+  "seaborn==0.13.2",
+  "PyYAML==6.0.2",
+  "joblib==1.4.2",
+  "ucimlrepo==0.0.7",
+  "tldextract==5.1.2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest==8.3.4", "ruff==0.14.14"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+ignore = ["E402"]

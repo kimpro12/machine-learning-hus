@@ -1,0 +1,252 @@
+{
+  "n": 235150,
+  "phishing_share_internal": 0.4265362534552413,
+  "n_cols": 89,
+  "rates_by_label": {
+    "is_https": {
+      "0": {
+        "mean": 1.0,
+        "num": 134850,
+        "den": 134850
+      },
+      "1": {
+        "mean": 0.48531405782652043,
+        "num": 48677,
+        "den": 100300
+      }
+    },
+    "has_www": {
+      "0": {
+        "mean": 1.0,
+        "num": 134850,
+        "den": 134850
+      },
+      "1": {
+        "mean": 0.4158125623130608,
+        "num": 41706,
+        "den": 100300
+      }
+    },
+    "path_present": {
+      "0": {
+        "mean": 0.0,
+        "num": 0,
+        "den": 134850
+      },
+      "1": {
+        "mean": 0.27022931206380857,
+        "num": 27104,
+        "den": 100300
+      }
+    },
+    "query_present": {
+      "0": {
+        "mean": 0.0,
+        "num": 0,
+        "den": 134850
+      },
+      "1": {
+        "mean": 0.06024925224327019,
+        "num": 6043,
+        "den": 100300
+      }
+    },
+    "IsHTTPS_raw": {
+      "0": {
+        "mean": 1.0,
+        "num": 134850,
+        "den": 134850
+      },
+      "1": {
+        "mean": 0.4902293120638086,
+        "num": 49170,
+        "den": 100300
+      }
+    },
+    "sim_ge_999": {
+      "0": {
+        "mean": 1.0,
+        "num": 134850,
+        "den": 134850
+      },
+      "1": {
+        "mean": 0.007836490528414756,
+        "num": 786,
+        "den": 100300
+      }
+    }
+  },
+  "SEVERE_COLLECTION_BIAS": true,
+  "top_stump": [
+    {
+      "feature": "URLSimilarityIndex",
+      "val_acc": 0.9967839676802042,
+      "val_bal_acc": 0.9962300598205384,
+      "threshold": 98.43727493286133
+    },
+    {
+      "feature": "NoOfExternalRef",
+      "val_acc": 0.9624973421220497,
+      "val_bal_acc": 0.9639409427446248,
+      "threshold": 4.5
+    },
+    {
+      "feature": "LineOfCode",
+      "val_acc": 0.9569955347650436,
+      "val_bal_acc": 0.9533964499715537,
+      "threshold": 202.5
+    },
+    {
+      "feature": "NoOfSelfRef",
+      "val_acc": 0.9505900489049542,
+      "val_bal_acc": 0.9552673204894031,
+      "threshold": 3.5
+    },
+    {
+      "feature": "NoOfImage",
+      "val_acc": 0.9437858813523283,
+      "val_bal_acc": 0.9412803256895979,
+      "threshold": 2.5
+    },
+    {
+      "feature": "NoOfJS",
+      "val_acc": 0.9335530512438869,
+      "val_bal_acc": 0.9309454492473636,
+      "threshold": 2.5
+    },
+    {
+      "feature": "NoOfCSS",
+      "val_acc": 0.9051403359557729,
+      "val_bal_acc": 0.8921231185013738,
+      "threshold": 0.5
+    },
+    {
+      "feature": "HasSocialNet",
+      "val_acc": 0.8841165213693387,
+      "val_bal_acc": 0.8983631119064017,
+      "threshold": 0.5
+    },
+    {
+      "feature": "HasCopyrightInfo",
+      "val_acc": 0.8683553051243887,
+      "val_bal_acc": 0.8782987453102318,
+      "threshold": 0.5
+    },
+    {
+      "feature": "HasDescription",
+      "val_acc": 0.8323942164575803,
+      "val_bal_acc": 0.8483573889011498,
+      "threshold": 0.5
+    },
+    {
+      "feature": "path_length",
+      "val_acc": 0.8265468849670423,
+      "val_bal_acc": 0.796672482552343,
+      "threshold": 0.5
+    },
+    {
+      "feature": "num_slashes_path",
+      "val_acc": 0.8265468849670423,
+      "val_bal_acc": 0.796672482552343,
+      "threshold": 0.5
+    },
+    {
+      "feature": "LargestLineLength",
+      "val_acc": 0.8250053157559005,
+      "val_bal_acc": 0.7978908218799293,
+      "threshold": 226.5
+    },
+    {
+      "feature": "has_www",
+      "val_acc": 0.8218158622156071,
+      "val_bal_acc": 0.7911266201395812,
+      "threshold": 0.5
+    },
+    {
+      "feature": "NoOfOtherSpecialCharsInURL",
+      "val_acc": 0.7945194556665958,
+      "val_bal_acc": 0.7639423914019898,
+      "threshold": 2.5
+    }
+  ],
+  "SUSPECT_LABEL_PROXY": true,
+  "top_stump_feature": "URLSimilarityIndex",
+  "top_stump_acc": 0.9967839676802042,
+  "top_corr": [
+    {
+      "feature": "URLSimilarityIndex",
+      "pearson_r": -0.8598665209221364,
+      "abs_r": 0.8598665209221364
+    },
+    {
+      "feature": "HasSocialNet",
+      "pearson_r": -0.7814497241701902,
+      "abs_r": 0.7814497241701902
+    },
+    {
+      "feature": "HasCopyrightInfo",
+      "pearson_r": -0.7421520024398871,
+      "abs_r": 0.7421520024398871
+    },
+    {
+      "feature": "HasDescription",
+      "pearson_r": -0.6883973964682785,
+      "abs_r": 0.6883973964682785
+    },
+    {
+      "feature": "has_www",
+      "pearson_r": -0.6677835139111093,
+      "abs_r": 0.6677835139111093
+    },
+    {
+      "feature": "is_https",
+      "pearson_r": -0.6153565155086327,
+      "abs_r": 0.6153565155086327
+    },
+    {
+      "feature": "IsHTTPS",
+      "pearson_r": -0.6116469151200804,
+      "abs_r": 0.6116469151200804
+    },
+    {
+      "feature": "DomainTitleMatchScore",
+      "pearson_r": -0.5838939775326234,
+      "abs_r": 0.5838939775326234
+    },
+    {
+      "feature": "HasSubmitButton",
+      "pearson_r": -0.5787695396230165,
+      "abs_r": 0.5787695396230165
+    },
+    {
+      "feature": "IsResponsive",
+      "pearson_r": -0.5481192165439619,
+      "abs_r": 0.5481192165439619
+    },
+    {
+      "feature": "URLTitleMatchScore",
+      "pearson_r": -0.5391885051743068,
+      "abs_r": 0.5391885051743068
+    },
+    {
+      "feature": "SpacialCharRatioInURL",
+      "pearson_r": 0.5320713854656766,
+      "abs_r": 0.5320713854656766
+    },
+    {
+      "feature": "NoOfJS",
+      "pearson_r": -0.5130387765247466,
+      "abs_r": 0.5130387765247466
+    },
+    {
+      "feature": "HasHiddenFields",
+      "pearson_r": -0.5075205885038292,
+      "abs_r": 0.5075205885038292
+    },
+    {
+      "feature": "num_slashes_path",
+      "pearson_r": 0.49655410501663616,
+      "abs_r": 0.49655410501663616
+    }
+  ]
+}

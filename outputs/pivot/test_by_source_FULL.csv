@@ -1,0 +1,8 @@
+source,slice_col,subset,n,phish_rate,accuracy,prec,rec,spec,f1,macro_f1,roc,TN,FP,FN,TP,acc_lo,acc_hi,tiny_n_flag
+chongluadao,source,FULL,4579,1.0,0.9773,1.0,0.9773,0.0,0.9885,0.4943,,0,0,104,4475,0.9725,0.9814,False
+tinnhiem_web,source,FULL,2246,0.0,0.972,0.0,0.0,0.972,0.0,0.4929,,2183,63,0,0,0.9643,0.9784,False
+tranco,source,FULL,888,0.0,0.2973,0.0,0.0,0.2973,0.0,0.2292,,264,624,0,0,0.2674,0.3286,False
+tinnhiemmang,source,FULL,487,1.0,0.9487,1.0,0.9487,0.0,0.9737,0.4868,,0,0,25,462,0.9251,0.9665,False
+tinnhiem_org,source,FULL,358,0.0,0.9022,0.0,0.0,0.9022,0.0,0.4743,,323,35,0,0,0.8667,0.931,False
+tranco_vn,source,FULL,353,0.0,0.949,0.0,0.0,0.949,0.0,0.4869,,335,18,0,0,0.9206,0.9695,False
+openphish,source,FULL,30,1.0,0.9333,1.0,0.9333,0.0,0.9655,0.4828,,0,0,2,28,0.7793,0.9918,False

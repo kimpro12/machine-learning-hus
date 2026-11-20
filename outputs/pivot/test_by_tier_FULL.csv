@@ -1,0 +1,4 @@
+tier,slice_col,subset,n,phish_rate,accuracy,prec,rec,spec,f1,macro_f1,roc,TN,FP,FN,TP,acc_lo,acc_hi,tiny_n_flag
+bronze,tier,FULL,4609,1.0,0.977,1.0,0.977,0.0,0.9884,0.4942,,0,0,106,4503,0.9723,0.9811,False
+gold,tier,FULL,2673,0.0258,0.9615,0.3951,0.9275,0.9624,0.5541,0.767,0.9857,2506,98,5,64,0.9535,0.9684,False
+silver,tier,FULL,1659,0.252,0.601,0.3827,0.9522,0.4827,0.546,0.595,0.8356,599,642,20,398,0.5769,0.6246,False

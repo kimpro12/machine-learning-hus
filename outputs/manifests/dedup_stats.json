@@ -1,0 +1,8 @@
+{
+  "n_in": 235795,
+  "n_exact_dup_rows": 0,
+  "n_dup_norm_urls": 623,
+  "n_conflict_urls": 0,
+  "n_quarantined_rows": 0,
+  "n_kept": 235150
+}
