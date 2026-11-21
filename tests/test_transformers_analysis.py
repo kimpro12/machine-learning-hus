@@ -4,24 +4,7 @@ import pandas as pd
 
 from phishing_ml.analysis import _profile_text, prep_pipeline
 from phishing_ml.features import PHISHVN_FEATURES
-from phishing_ml.transformers import CorrelationFilter, KMeansOneHot, Winsorizer, resample_indices
-
-
-def test_winsorizer_learns_on_fit_only():
-    train = np.arange(101, dtype=float).reshape(-1, 1)        # 0..100
-    w = Winsorizer(0.05, 0.95).fit(train)
-    out = w.transform(np.array([[-50.0], [50.0], [500.0]]))
-    assert out[0, 0] == w.lo_[0] and out[2, 0] == w.hi_[0] and out[1, 0] == 50.0
-    assert w.lo_[0] == 5.0 and w.hi_[0] == 95.0
-
-
-def test_correlation_filter_drops_redundant_column():
-    rng = np.random.default_rng(0)
-    a = rng.normal(size=200)
-    X = np.column_stack([a, 2 * a + 0.001 * rng.normal(size=200), rng.normal(size=200)])
-    cf = CorrelationFilter(0.9).fit(X)
-    assert cf.keep_.tolist() == [0, 2]
-    assert cf.transform(X).shape == (200, 2)
+from phishing_ml.transformers import KMeansOneHot, resample_indices
 
 
 def test_kmeans_onehot_appends_one_cluster_column():

@@ -27,7 +27,6 @@ Trong PhishVN, URL benign gần như được lưu dưới dạng domain trần 
 | Variant | thr | Val acc | Val F1 | Val macro-F1 | Test acc [CI95] | Test F1 | Test macro-F1 | Test ROC | Hassan acc | Hassan spec | Hassan macro-F1 | JPCERT rec |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `num_standard` | 0.50 | 0.8713 | 0.9215 | 0.7823 | 0.9026 [0.896, 0.909] | 0.9194 | 0.8982 | 0.9584 | 0.4393 | 0.0384 | 0.3320 | 0.9222 |
-| `num_standard_valthr` | 0.48 | 0.8713 | 0.9216 | 0.7817 | 0.9019 [0.896, 0.908] | 0.9189 | 0.8974 | 0.9584 | 0.4398 | 0.0379 | 0.3319 | 0.9228 |
 | `num_log1p` | 0.50 | 0.8688 | 0.9198 | 0.7804 | 0.9033 [0.897, 0.909] | 0.9199 | 0.8989 | 0.9587 | 0.4183 | 0.0360 | 0.3187 | 0.9350 |
 | `num_quantile` | 0.50 | 0.8633 | 0.9160 | 0.7751 | 0.8886 [0.882, 0.895] | 0.9077 | 0.8836 | 0.9416 | 0.4414 | 0.1093 | 0.3722 | 0.9343 |
 | `num_log1p_balanced` | 0.50 | 0.8043 | 0.8637 | 0.7585 | 0.8544 [0.847, 0.862] | 0.8610 | 0.8541 | 0.9605 | 0.3931 | 0.0974 | 0.3349 | 0.9059 |
@@ -37,20 +36,12 @@ Trong PhishVN, URL benign gần như được lưu dưới dạng domain trần 
 | `num_standard_nowww` | 0.50 | 0.8358 | 0.9010 | 0.7099 | 0.8799 [0.873, 0.887] | 0.9016 | 0.8737 | 0.9380 | 0.4287 | 0.0469 | 0.3312 | 0.9081 |
 | `url_tfidf_nowww` | 0.50 | 0.8395 | 0.8925 | 0.7882 | 0.9189 [0.913, 0.924] | 0.9282 | 0.9175 | 0.9766 | 0.5923 | 0.4537 | 0.5843 | 0.8569 |
 | `url_tfidf+num_log1p_nowww` | 0.50 | 0.8390 | 0.8921 | 0.7873 | 0.9195 [0.914, 0.925] | 0.9288 | 0.9181 | 0.9754 | 0.4786 | 0.0659 | 0.3715 | 0.9609 |
-| `num_winsorize` | 0.50 | 0.8705 | 0.9209 | 0.7818 | 0.9020 [0.896, 0.908] | 0.9187 | 0.8977 | 0.9566 | 0.4190 | 0.4140 | 0.4190 | 0.8054 |
-| `num_kbins_onehot` | 0.50 | 0.8551 | 0.9099 | 0.7698 | 0.8981 [0.892, 0.904] | 0.9142 | 0.8944 | 0.9605 | 0.3771 | 0.2329 | 0.3639 | 0.7612 |
-| `num_poly2` | 0.50 | 0.8628 | 0.9150 | 0.7800 | 0.9053 [0.899, 0.911] | 0.9208 | 0.9015 | 0.9629 | 0.4728 | 0.1568 | 0.4143 | 0.9005 |
-| `num_corr_filter` | 0.50 | 0.8712 | 0.9214 | 0.7820 | 0.9025 [0.896, 0.909] | 0.9193 | 0.8981 | 0.9584 | 0.4369 | 0.0433 | 0.3337 | 0.9163 |
-| `num_selectk_mi10` | 0.50 | 0.8686 | 0.9195 | 0.7805 | 0.9029 [0.897, 0.909] | 0.9193 | 0.8988 | 0.9555 | 0.4157 | 0.2910 | 0.4065 | 0.8961 |
-| `num_l1` | 0.50 | 0.8706 | 0.9211 | 0.7809 | 0.9014 [0.895, 0.907] | 0.9184 | 0.8969 | 0.9586 | 0.4218 | 0.0734 | 0.3419 | 0.9166 |
 | `num_pca95` | 0.50 | 0.7726 | 0.8621 | 0.6071 | 0.8150 [0.807, 0.823] | 0.8472 | 0.8064 | 0.8717 | 0.4782 | 0.1689 | 0.4230 | 0.9496 |
 | `num_undersample` | 0.50 | 0.8080 | 0.8670 | 0.7611 | 0.8574 [0.850, 0.865] | 0.8647 | 0.8570 | 0.9588 | 0.4109 | 0.1110 | 0.3527 | 0.8758 |
-| `num_oversample` | 0.50 | 0.8084 | 0.8672 | 0.7617 | 0.8575 [0.850, 0.865] | 0.8647 | 0.8571 | 0.9591 | 0.4110 | 0.0854 | 0.3411 | 0.8801 |
 | `num_kmeans_onehot` | 0.50 | 0.8724 | 0.9220 | 0.7858 | 0.9026 [0.896, 0.909] | 0.9192 | 0.8983 | 0.9603 | 0.4395 | 0.0459 | 0.3367 | 0.9141 |
 
 Mô tả biến thể:
 - `num_standard`: baseline: median impute + StandardScaler (= main benchmark logreg_C10)
-- `num_standard_valthr`: baseline + F1-optimal threshold chosen on val
 - `num_log1p`: log1p before scaling (counts are heavily right-skewed)
 - `num_quantile`: QuantileTransformer -> normal (rank-based, outlier-proof)
 - `num_log1p_balanced`: log1p + class_weight=balanced (threshold 0.5)
@@ -60,21 +51,13 @@ Mô tả biến thể:
 - `num_standard_nowww`: baseline on www-normalised URLs (leading 'www.' stripped, features recomputed)
 - `url_tfidf_nowww`: char TF-IDF on www-normalised URLs
 - `url_tfidf+num_log1p_nowww`: char TF-IDF + numeric (log1p), both on www-normalised URLs
-- `num_winsorize`: outlier handling: clip every feature to its train 1st-99th percentile, then scale
-- `num_kbins_onehot`: discretisation: 10 quantile bins per feature, one-hot encoded (lets a linear model bend)
-- `num_poly2`: feature construction: all degree-2 products of the scaled features (21 -> 252)
-- `num_corr_filter`: feature selection: drop features with |r| > 0.9 to an earlier one (train), then scale
-- `num_selectk_mi10`: feature selection: keep the 10 features with highest mutual information (train)
-- `num_l1`: embedded feature selection: L1-penalised LogReg (C=0.05) zeroes out weak features
 - `num_pca95`: dimensionality reduction: PCA keeping 95% of variance (fit on train), then LogReg
 - `num_undersample`: imbalance: randomly drop phishing rows in train to a 50/50 balance
-- `num_oversample`: imbalance: randomly duplicate benign rows in train to a 50/50 balance
 - `num_kmeans_onehot`: clustering as a feature: append one-hot K-Means (k=8, fit on train) cluster id
 
 ### Kiểm định so với baseline (`num_standard`) trên test (n=8941)
 | Variant | Δ test macro-F1 vs baseline [paired bootstrap CI95] | only new right / only baseline right | McNemar p |
 |---|---|---|---|
-| `num_standard_valthr` | -0.0007 [-0.0015, -0.0001] | 1 / 7 | 0.07 |
 | `num_log1p` | +0.0007 [-0.0009, +0.0020] | 21 / 15 | 0.41 |
 | `num_quantile` | -0.0146 [-0.0179, -0.0114] | 39 / 164 | 2e-19 * |
 | `num_log1p_balanced` | -0.0441 [-0.0525, -0.0355] | 503 / 934 | 3e-30 * |
@@ -84,22 +67,15 @@ Mô tả biến thể:
 | `num_standard_nowww` | -0.0244 [-0.0285, -0.0205] | 52 / 255 | 2.6e-33 * |
 | `url_tfidf_nowww` | +0.0193 [+0.0122, +0.0260] | 545 / 399 | 2.3e-06 * |
 | `url_tfidf+num_log1p_nowww` | +0.0199 [+0.0132, +0.0271] | 551 / 400 | 1.1e-06 * |
-| `num_winsorize` | -0.0004 [-0.0018, +0.0010] | 16 / 21 | 0.51 |
-| `num_kbins_onehot` | -0.0038 [-0.0069, -0.0005] | 82 / 122 | 0.0062 * |
-| `num_poly2` | +0.0033 [+0.0004, +0.0061] | 95 / 71 | 0.074 |
-| `num_corr_filter` | -0.0001 [-0.0004, +0.0000] | 0 / 1 | 1 |
-| `num_selectk_mi10` | +0.0006 [-0.0009, +0.0022] | 27 / 24 | 0.78 |
-| `num_l1` | -0.0013 [-0.0022, -0.0006] | 0 / 11 | 0.00098 * |
 | `num_pca95` | -0.0918 [-0.0991, -0.0842] | 197 / 980 | 3e-125 * |
 | `num_undersample` | -0.0412 [-0.0492, -0.0328] | 487 / 891 | 7.8e-28 * |
-| `num_oversample` | -0.0411 [-0.0493, -0.0328] | 490 / 893 | 1.3e-27 * |
 | `num_kmeans_onehot` | +0.0001 [-0.0012, +0.0014] | 16 / 16 | 1 |
 
 `*` = p < 0.05 (McNemar chính xác, trên các mẫu hai model dự đoán khác nhau). CI bootstrap ghép cặp 1000 lần, cùng các dòng test.
 
 ### Đọc kết quả
 - **Biến thể tốt nhất theo val macro-F1: `url_tfidf+num_log1p`** (val 0.8542 so với baseline 0.7823; test 0.9376 so với 0.8982, Δ +0.0395 [+0.0329, +0.0462], McNemar p=4.3e-28).
-- **Đổi cách scale feature số** (val macro-F1: `num_standard` 0.7823, `num_log1p` 0.7804, `num_quantile` 0.7751, `num_log1p_balanced` 0.7585, `num_standard_nowww` 0.7099, `num_winsorize` 0.7818, `num_kbins_onehot` 0.7698, `num_poly2` 0.7800, `num_corr_filter` 0.7820, `num_selectk_mi10` 0.7805, `num_l1` 0.7809, `num_pca95` 0.6071, `num_undersample` 0.7611, `num_oversample` 0.7617, `num_kmeans_onehot` 0.7858). Feature lệch rất mạnh (skew trên train: `amp_cnt` 86, `under_cnt` 70, `query_len` 64, `eq_cnt` 56), vậy mà log1p không giúp gì; còn QuantileTransformer làm kết quả **kém hơn** (`num_log1p` Δ test macro-F1 +0.0007, McNemar p=0.41 (không khác có ý nghĩa); `num_quantile` Δ test macro-F1 -0.0146, McNemar p=2e-19 (khác có ý nghĩa)). Với LogReg ở đây, thông tin nằm ở việc feature có hay không có và ở thứ tự thô của giá trị; ép về phân phối chuẩn theo hạng làm mất khoảng cách giữa các giá trị cực trị (URL rất dài, query rất nhiều tham số), mà chính các giá trị đó mang tín hiệu.
+- **Đổi cách scale feature số** (val macro-F1: `num_standard` 0.7823, `num_log1p` 0.7804, `num_quantile` 0.7751, `num_log1p_balanced` 0.7585, `num_standard_nowww` 0.7099, `num_pca95` 0.6071, `num_undersample` 0.7611, `num_kmeans_onehot` 0.7858). Feature lệch rất mạnh (skew trên train: `amp_cnt` 86, `under_cnt` 70, `query_len` 64, `eq_cnt` 56), vậy mà log1p không giúp gì; còn QuantileTransformer làm kết quả **kém hơn** (`num_log1p` Δ test macro-F1 +0.0007, McNemar p=0.41 (không khác có ý nghĩa); `num_quantile` Δ test macro-F1 -0.0146, McNemar p=2e-19 (khác có ý nghĩa)). Với LogReg ở đây, thông tin nằm ở việc feature có hay không có và ở thứ tự thô của giá trị; ép về phân phối chuẩn theo hạng làm mất khoảng cách giữa các giá trị cực trị (URL rất dài, query rất nhiều tham số), mà chính các giá trị đó mang tín hiệu.
 - **class_weight / ngưỡng**: `num_log1p_balanced` ở ngưỡng 0.5 có test F1 0.8610; khi chọn lại ngưỡng trên val (thr=0.26) F1 về 0.9195. Trọng số lớp chủ yếu chỉ dịch ngưỡng; chọn ngưỡng trên val là đủ.
 - **TF-IDF n-gram ký tự** học trực tiếp các chuỗi con của URL mà 21 feature đếm không thấy (xem mục 1b). Trên Hassan, biến thể tốt nhất theo val (`url_tfidf+num_log1p`) có macro-F1 0.3419, specificity 0.0283 so với baseline 0.3320 / 0.0384. Biến thể tổng quát hóa tốt nhất sang Hassan lại là `url_tfidf_nowww` (macro-F1 0.5843, specificity 0.4537). Cải thiện nội bộ **không** tự động chuyển thành khả năng tổng quát hóa, và chọn model theo val không chọn ra model tổng quát hóa tốt nhất.
 
@@ -118,27 +94,19 @@ Phía phishing bị chi phối bởi `www.` (mục 0) và các từ khóa lừa 
 
 **Điểm nội bộ giảm** khi bỏ `www.` (Δ val macro-F1 từ -0.0724 đến -0.0506). Một phần thành tích nội bộ đến từ lối tắt `www.`; con số sau khi bỏ trung thực hơn, dù thấp hơn. Trên Hassan, cải thiện lớn nhất ở `url_tfidf_nowww`: specificity +0.232, macro-F1 0.5843, accuracy 0.5923. Như vậy với model chỉ đọc chuỗi URL, `www.` là nguyên nhân lớn của lỗi benign trên Hassan. Ngược lại `num_standard_nowww` gần như không đổi (Δ specificity < 0.02): các feature số còn chứa lối tắt khác (độ dài domain, số subdomain, đuôi domain…) mà việc bỏ `www.` không gỡ được.
 
-### 1d. Các kỹ thuật xử lý dữ liệu kinh điển trên 21 feature số
-Cùng LogReg C=10, mỗi dòng chỉ đổi **một** bước xử lý so với baseline (`num_standard`). Mọi tham số của bước xử lý (ngưỡng cắt, bin, tâm cụm, feature được chọn…) chỉ học trên train.
+### 1d. PCA, undersampling và cụm K-Means trên 21 feature số
+Cùng LogReg C=10, mỗi dòng chỉ đổi **một** bước xử lý so với baseline (`num_standard`). Mọi tham số của bước xử lý (các thành phần PCA, tâm cụm K-Means, mẫu được giữ khi undersampling) chỉ học trên train.
 
 | Nhóm kỹ thuật | Biến thể | Làm gì | Val macro-F1 | Test macro-F1 | Δ test vs baseline [CI95] | McNemar p | Hassan macro-F1 |
 |---|---|---|---|---|---|---|---|
-| outliers | `num_winsorize` | outlier handling: clip every feature to its train 1st-99th percentile, then scale | 0.7818 | 0.8977 | -0.0004 [-0.0018, +0.0010] | 0.51 | 0.4190 |
-| feature construction | `num_kbins_onehot` | discretisation: 10 quantile bins per feature, one-hot encoded (lets a linear model bend) | 0.7698 | 0.8944 | -0.0038 [-0.0069, -0.0005] | 0.0062 | 0.3639 |
-| feature construction | `num_poly2` | feature construction: all degree-2 products of the scaled features (21 -> 252) | 0.7800 | 0.9015 | +0.0033 [+0.0004, +0.0061] | 0.074 | 0.4143 |
-| feature selection | `num_corr_filter` | feature selection: drop features with |r| > 0.9 to an earlier one (train), then scale | 0.7820 | 0.8981 | -0.0001 [-0.0004, +0.0000] | 1 | 0.3337 |
-| feature selection | `num_selectk_mi10` | feature selection: keep the 10 features with highest mutual information (train) | 0.7805 | 0.8988 | +0.0006 [-0.0009, +0.0022] | 0.78 | 0.4065 |
-| feature selection | `num_l1` | embedded feature selection: L1-penalised LogReg (C=0.05) zeroes out weak features | 0.7809 | 0.8969 | -0.0013 [-0.0022, -0.0006] | 0.00098 | 0.3419 |
 | dimensionality reduction | `num_pca95` | dimensionality reduction: PCA keeping 95% of variance (fit on train), then LogReg | 0.6071 | 0.8064 | -0.0918 [-0.0991, -0.0842] | 3e-125 | 0.4230 |
 | class imbalance | `num_undersample` | imbalance: randomly drop phishing rows in train to a 50/50 balance | 0.7611 | 0.8570 | -0.0412 [-0.0492, -0.0328] | 7.8e-28 | 0.3527 |
-| class imbalance | `num_oversample` | imbalance: randomly duplicate benign rows in train to a 50/50 balance | 0.7617 | 0.8571 | -0.0411 [-0.0493, -0.0328] | 1.3e-27 | 0.3411 |
 | clustering as feature | `num_kmeans_onehot` | clustering as a feature: append one-hot K-Means (k=8, fit on train) cluster id | 0.7858 | 0.8983 | +0.0001 [-0.0012, +0.0014] | 1 | 0.3367 |
 
 - Tốt nhất theo val trong nhóm này: **`num_kmeans_onehot`** (val macro-F1 0.7858 so với baseline 0.7823).
-- **Tốt hơn baseline có ý nghĩa** (cả khoảng tin cậy > 0): `num_poly2` (+0.0033†).
-- **Không khác biệt** (khoảng tin cậy chứa 0): `num_winsorize` (-0.0004), `num_corr_filter` (-0.0001), `num_selectk_mi10` (+0.0006), `num_kmeans_onehot` (+0.0001).
-- **Kém hơn có ý nghĩa** (cả khoảng tin cậy < 0): `num_kbins_onehot` (-0.0038), `num_l1` (-0.0013), `num_pca95` (-0.0918), `num_undersample` (-0.0412), `num_oversample` (-0.0411).
-- `†` = khoảng tin cậy bootstrap không chứa 0 nhưng McNemar p ≥ 0.05: hai kiểm định không đồng thuận, nên coi là chênh lệch rất nhỏ, chưa chắc chắn.
+- **Tốt hơn baseline có ý nghĩa** (cả khoảng tin cậy > 0): không có.
+- **Không khác biệt** (khoảng tin cậy chứa 0): `num_kmeans_onehot` (+0.0001).
+- **Kém hơn có ý nghĩa** (cả khoảng tin cậy < 0): `num_pca95` (-0.0918), `num_undersample` (-0.0412).
 - Trên Hassan, tốt nhất trong nhóm này là `num_pca95` (macro-F1 0.4230 so với baseline 0.3320).
 
 ## 2. Leave-one-source-out

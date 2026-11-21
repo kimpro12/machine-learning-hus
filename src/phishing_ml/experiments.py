@@ -1,6 +1,6 @@
 """Supplementary experiments (Logistic Regression only, FULL subset).
 
-E-PREP  Preprocessing ablation: 21 variants of the same LogReg (C=10).
+E-PREP  Preprocessing ablation: 13 variants of the same LogReg (C=10).
         Train on train, report val (selection) + official test + Hassan + JPCERT.
         Thresholds, when tuned, are tuned on val only and frozen before test.
         Statistics vs the baseline on test: exact McNemar p-value and a paired
@@ -29,14 +29,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import f1_score, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.decomposition import PCA
-from sklearn.feature_selection import SelectKBest, mutual_info_classif
 from sklearn.preprocessing import (
-    FunctionTransformer, KBinsDiscretizer, PolynomialFeatures, QuantileTransformer, StandardScaler,
+    FunctionTransformer, QuantileTransformer, StandardScaler,
 )
 
 from .evaluate import clopper_pearson_ci
 from .features import PHISHVN_FEATURES as FEATS, phishvn_features, strip_scheme
-from .transformers import CorrelationFilter, KMeansOneHot, Winsorizer, resample_indices
+from .transformers import KMeansOneHot, resample_indices
 
 SEED = 42
 N_BOOT = 1000
@@ -78,8 +77,6 @@ def build_variants() -> list[dict]:
     return [
         dict(name='num_standard', desc='baseline: median impute + StandardScaler (= main benchmark logreg_C10)',
              make=lambda: Pipeline(_num(('scale', StandardScaler()), ('clf', _logreg()))), x='num', thr='fixed'),
-        dict(name='num_standard_valthr', desc='baseline + F1-optimal threshold chosen on val',
-             make=lambda: Pipeline(_num(('scale', StandardScaler()), ('clf', _logreg()))), x='num', thr='val'),
         dict(name='num_log1p', desc='log1p before scaling (counts are heavily right-skewed)',
              make=lambda: Pipeline(_num(('log1p', _log1p()), ('scale', StandardScaler()), ('clf', _logreg()))), x='num', thr='fixed'),
         dict(name='num_quantile', desc='QuantileTransformer -> normal (rank-based, outlier-proof)',
@@ -104,36 +101,12 @@ def build_variants() -> list[dict]:
         dict(name='url_tfidf+num_log1p_nowww', desc="char TF-IDF + numeric (log1p), both on www-normalised URLs",
              make=lambda: Pipeline([('features', both()), ('clf', _logreg())]), x='both', thr='fixed', nowww=True),
         # ---- classic data-processing techniques on the 21 numeric features ----
-        dict(name='num_winsorize', desc='outlier handling: clip every feature to its train 1st-99th percentile, then scale',
-             make=lambda: Pipeline(_num(('clip', Winsorizer(0.01, 0.99)), ('scale', StandardScaler()), ('clf', _logreg()))),
-             x='num', thr='fixed', group='outliers'),
-        dict(name='num_kbins_onehot', desc='discretisation: 10 quantile bins per feature, one-hot encoded (lets a linear model bend)',
-             make=lambda: Pipeline(_num(('bins', KBinsDiscretizer(n_bins=10, encode='onehot', strategy='quantile')),
-                                        ('clf', _logreg()))), x='num', thr='fixed', group='feature construction'),
-        dict(name='num_poly2', desc='feature construction: all degree-2 products of the scaled features (21 -> 252)',
-             make=lambda: Pipeline(_num(('scale', StandardScaler()), ('poly', PolynomialFeatures(2, include_bias=False)),
-                                        ('scale2', StandardScaler()), ('clf', _logreg()))), x='num', thr='fixed',
-             group='feature construction'),
-        dict(name='num_corr_filter', desc='feature selection: drop features with |r| > 0.9 to an earlier one (train), then scale',
-             make=lambda: Pipeline(_num(('corr', CorrelationFilter(0.9)), ('scale', StandardScaler()), ('clf', _logreg()))),
-             x='num', thr='fixed', group='feature selection'),
-        dict(name='num_selectk_mi10', desc='feature selection: keep the 10 features with highest mutual information (train)',
-             make=lambda: Pipeline(_num(('scale', StandardScaler()),
-                                        ('select', SelectKBest(lambda X, y: mutual_info_classif(X, y, random_state=SEED), k=10)),
-                                        ('clf', _logreg()))), x='num', thr='fixed', group='feature selection'),
-        dict(name='num_l1', desc='embedded feature selection: L1-penalised LogReg (C=0.05) zeroes out weak features',
-             make=lambda: Pipeline(_num(('scale', StandardScaler()),
-                                        ('clf', LogisticRegression(penalty='l1', C=0.05, solver='liblinear', max_iter=3000)))),
-             x='num', thr='fixed', group='feature selection'),
         dict(name='num_pca95', desc='dimensionality reduction: PCA keeping 95% of variance (fit on train), then LogReg',
              make=lambda: Pipeline(_num(('scale', StandardScaler()), ('pca', PCA(n_components=0.95, random_state=SEED)),
                                         ('clf', _logreg()))), x='num', thr='fixed', group='dimensionality reduction'),
         dict(name='num_undersample', desc='imbalance: randomly drop phishing rows in train to a 50/50 balance',
              make=lambda: Pipeline(_num(('scale', StandardScaler()), ('clf', _logreg()))),
              x='num', thr='fixed', resample='under', group='class imbalance'),
-        dict(name='num_oversample', desc='imbalance: randomly duplicate benign rows in train to a 50/50 balance',
-             make=lambda: Pipeline(_num(('scale', StandardScaler()), ('clf', _logreg()))),
-             x='num', thr='fixed', resample='over', group='class imbalance'),
         dict(name='num_kmeans_onehot', desc='clustering as a feature: append one-hot K-Means (k=8, fit on train) cluster id',
              make=lambda: Pipeline(_num(('scale', StandardScaler()), ('kmeans', KMeansOneHot(8, SEED)), ('clf', _logreg()))),
              x='num', thr='fixed', group='clustering as feature'),
@@ -507,9 +480,9 @@ def write_report(prep: pd.DataFrame, loso: pd.DataFrame, ngrams: pd.DataFrame, s
             f"- **Tốt hơn baseline có ý nghĩa** (cả khoảng tin cậy > 0): {lst(better)}.",
             f"- **Không khác biệt** (khoảng tin cậy chứa 0): {lst(same, False)}.",
             f"- **Kém hơn có ý nghĩa** (cả khoảng tin cậy < 0): {lst(worse)}.",
-            "- `†` = khoảng tin cậy bootstrap không chứa 0 nhưng McNemar p ≥ 0.05: hai kiểm định không đồng thuận, nên coi là "
-            "chênh lệch rất nhỏ, chưa chắc chắn.",
-        ])
+        ] + (["- `†` = khoảng tin cậy bootstrap không chứa 0 nhưng McNemar p ≥ 0.05: hai kiểm định không đồng thuận, nên coi là "
+               "chênh lệch rất nhỏ, chưa chắc chắn."]
+              if (pd.concat([better, worse])['mcnemar_p'] >= 0.05).any() else []))
         if has_h:
             hb = classic.loc[classic['hassan_macro_f1'].idxmax()]
             cl_text += chr(10) + (f"- Trên Hassan, tốt nhất trong nhóm này là `{hb['variant']}` (macro-F1 {_f(hb['hassan_macro_f1'])} "
@@ -577,8 +550,8 @@ Phía phishing bị chi phối bởi `www.` (mục 0) và các từ khóa lừa 
 
 {nw_text}
 
-### 1d. Các kỹ thuật xử lý dữ liệu kinh điển trên 21 feature số
-Cùng LogReg C=10, mỗi dòng chỉ đổi **một** bước xử lý so với baseline (`num_standard`). Mọi tham số của bước xử lý (ngưỡng cắt, bin, tâm cụm, feature được chọn…) chỉ học trên train.
+### 1d. PCA, undersampling và cụm K-Means trên 21 feature số
+Cùng LogReg C=10, mỗi dòng chỉ đổi **một** bước xử lý so với baseline (`num_standard`). Mọi tham số của bước xử lý (các thành phần PCA, tâm cụm K-Means, mẫu được giữ khi undersampling) chỉ học trên train.
 
 {chr(10).join(cl_lines)}
 

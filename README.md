@@ -190,15 +190,9 @@ Bước 3.5–3.6 là cách xử lý chính. Ngoài ra đồ án thử thêm cá
 | **Chỉnh ngưỡng trên val** | Mặc định model báo phishing khi P(phishing) ≥ 0.5; ở đây chọn ngưỡng cho F1 cao nhất trên **val** | 0.5 không phải lúc nào cũng là ngưỡng tốt nhất | Ngưỡng 0.26 thay vì 0.5 |
 | **TF-IDF n-gram ký tự** | Cắt URL thành mọi đoạn 2–5 ký tự liên tiếp, đếm và đánh trọng số (đoạn hiếm thì trọng số cao), rồi dùng làm feature | 21 feature đếm không "đọc" được nội dung. N-gram bắt được từ khóa như `xacth`, `nhap`, `vay`, `vip` | A sinh ra 149 n-gram như `xac`, `xacth`, `-nhap`, `nhap?`… |
 | **Bỏ tiền tố `www.`** | Xóa `www.` ở đầu host trước khi trích feature | Xem ngay mục 3.8 | `www.shopee.vn` → `shopee.vn` |
-| **Cắt ngoại lai (winsorize)** | Mỗi feature bị kẹp trong khoảng [phân vị 1%, phân vị 99%] của train | Vài URL cực dài có thể kéo lệch trọng số của model tuyến tính | `url_len` train: p1 = 7, p99 = 36, max = 184. URL A (`url_len` 42) bị coi là 36 |
-| **Rời rạc hóa (KBinsDiscretizer)** | Chia mỗi feature thành 10 khoảng theo phân vị, rồi one-hot (mỗi khoảng là một cột 0/1) | Cho model tuyến tính học được quan hệ "cong": ví dụ quá ngắn và quá dài đều đáng ngờ | Ranh giới `url_len`: 4, 10, 11, 12, 14, 15, 16, 18, 20, 25, 184. A (42) rơi vào khoảng cuối |
-| **Feature đa thức bậc 2** | Thêm mọi tích từng cặp feature (`url_len × digit_cnt`, `subdom_cnt²`…): 21 → 252 cột | Cho model tuyến tính học tương tác giữa các feature | "URL dài **và** nhiều chữ số" thành một feature riêng |
-| **Lọc tương quan** | Bỏ feature có \|r\| > 0.9 với một feature đã giữ (tính trên train) | Hai feature gần như trùng thông tin là thừa | Bỏ `letter_cnt` (r = 0.95 với `url_len`) và `digit_ratio` (r = −0.96 với `letter_ratio`) |
-| **SelectKBest (mutual information)** | Chỉ giữ 10 feature có mutual information với nhãn cao nhất | Model gọn hơn, xem bỏ bớt có mất gì không | Giữ `tld_len`, `dot_cnt`, `letter_ratio`, `entropy`, … |
-| **L1 / Lasso** | Phạt tổng \|trọng số\|, khiến trọng số của feature yếu về đúng 0 | Chọn feature ngay trong lúc train (embedded selection) | Với C = 0.02 chỉ còn 12/21 feature |
-| **PCA 95%** | Thay 21 feature bằng các thành phần chính giữ 95% phương sai | Giảm chiều, khử tương quan | 21 → 10 thành phần |
-| **Undersampling / oversampling** | Train trên dữ liệu cân bằng 50/50: bỏ bớt ngẫu nhiên URL phishing, hoặc nhân bản ngẫu nhiên URL benign | Một cách khác để xử lý lệch lớp, ngoài `class_weight` | Train 11,004 benign / 25,905 phishing → 11,004 / 11,004 (under) hoặc 25,905 / 25,905 (over) |
-| **Cụm K-Means làm feature** | Phân cụm train thành 8 cụm (không dùng nhãn), thêm 8 cột 0/1 "URL thuộc cụm nào" | Dùng kết quả học không giám sát để hỗ trợ học có giám sát | Mỗi URL có thêm 8 cột, đúng một cột bằng 1 |
+| **PCA 95%** | Thay 21 feature bằng các thành phần chính giữ 95% phương sai | Giảm chiều, khử tương quan (cách PCA hoạt động: [4.2](#42-pca-phân-tích-thành-phần-chính)) | 21 → 10 thành phần |
+| **Undersampling** | Train trên dữ liệu cân bằng 50/50 bằng cách bỏ bớt ngẫu nhiên URL phishing | Một cách khác để xử lý lệch lớp, ngoài `class_weight` | Train 11,004 benign / 25,905 phishing → 11,004 / 11,004 |
+| **Cụm K-Means làm feature** | Phân cụm train thành 8 cụm (không dùng nhãn), thêm 8 cột 0/1 "URL thuộc cụm nào" | Dùng kết quả học không giám sát để hỗ trợ học có giám sát (K-Means: [4.3](#43-phân-cụm-k-means-gmm)) | Mỗi URL có thêm 8 cột, đúng một cột bằng 1. Ví dụ `www.shopee.vn` và `shopee.vn` rơi vào hai cụm khác nhau |
 
 ### 3.8 Chuẩn hóa bỏ `www.` (phát hiện quan trọng nhất)
 Khi xem các n-gram mà model TF-IDF dựa vào nhiều nhất để kết luận "phishing", n-gram đứng đầu là **`www.`**. Mình đếm lại trên dữ liệu:
@@ -349,7 +343,7 @@ Số liệu: `outputs/clustering_selection.csv`, `outputs/clustering_ward.csv`, 
 
 | Phát hiện | Hệ quả |
 |---|---|
-| Feature lệch mạnh, nhiều số 0 (phần mở đầu mục 4) | Dùng `log1p` trước PCA và phân cụm; thử `log1p`, winsorize, QuantileTransformer trong thí nghiệm ([7.2](#72-thí-nghiệm-bổ-sung-cách-xử-lý-dữ-liệu-ảnh-hưởng-thế-nào)) |
+| Feature lệch mạnh, nhiều số 0 (phần mở đầu mục 4) | Dùng `log1p` trước PCA và phân cụm; thử `log1p` và QuantileTransformer trong thí nghiệm ([7.2](#72-thí-nghiệm-bổ-sung-cách-xử-lý-dữ-liệu-ảnh-hưởng-thế-nào)) |
 | Sức mạnh của feature số phần lớn đến từ `subdom_cnt`, tức `www.` (4.1) | Thử bỏ `www.` trước khi trích feature (3.8) |
 | PC hữu ích nhất không phải PC1 (4.2) | PCA không phù hợp để giảm chiều cho bài toán này |
 | Cụm khớp với nguồn hơn với nhãn (4.3) | Phải kiểm tra leave-one-source-out (6.5) và dữ liệu ngoài (6.4) |
@@ -381,18 +375,6 @@ Số liệu: `outputs/clustering_selection.csv`, `outputs/clustering_ward.csv`, 
 Có tổng cộng 10 cấu hình: dummy, 3 Logistic Regression, 3 Random Forest, 3 Linear SVM. Tất cả **học trên train, so điểm trên val**. Cấu hình có F1 cao nhất trên val được chọn, rồi đóng băng (lưu ra file) và chấm trên test đúng một lần.
 
 Kết quả chọn trên FULL: **Logistic Regression C = 10**. Code: `grids()`, `run_quick()`, `run_final_test()` trong `pipeline.py`.
-
-### 5.6 PCA (giảm chiều)
-- **Làm gì:** gộp 21 feature thành ít "thành phần chính" hơn, mỗi thành phần là tổ hợp tuyến tính của các feature cũ, chọn theo hướng dữ liệu biến thiên nhiều nhất.
-- **Tại sao thử:** nhiều feature trùng thông tin nhau (`letter_cnt` và `url_len` tương quan 0.95). Ít chiều hơn thì model nhanh hơn và dễ vẽ hình.
-- **Câu hỏi:** giảm chiều có làm mất thông tin phân biệt phishing không?
-- Cách PCA hoạt động, loadings và vì sao PC1 không phải PC hữu ích nhất: xem [4.2](#42-pca-phân-tích-thành-phần-chính).
-
-### 5.7 K-Means và GMM (phân cụm)
-- **Làm gì:** gom URL thành nhóm theo độ giống nhau, **không dùng nhãn**. K-Means chia thành k cụm dựa trên khoảng cách tới tâm cụm; GMM (Gaussian Mixture) coi mỗi cụm là một "đám mây" hình elip và cho phép cụm chồng lấn.
-- **Tại sao thử:** xem dữ liệu có tự chia thành "nhóm phishing" và "nhóm benign" không.
-- **Đo bằng ARI** (Adjusted Rand Index): bằng 1 nếu các cụm khớp hoàn toàn với nhãn, bằng 0 nếu chỉ khớp như chia ngẫu nhiên.
-- Cách chọn k, hồ sơ từng cụm và đối chiếu cụm với nguồn dữ liệu: xem [4.3](#43-phân-cụm-k-means-gmm).
 
 ---
 
@@ -447,43 +429,32 @@ Vì mỗi nguồn chỉ có một nhãn ([2.2](#22-url-đến-từ-đâu-rất-q
 |---|---|
 | **RQ1** Model nào tốt nhất? | **Logistic Regression C=10**. Test: accuracy **0.903** [0.896, 0.909], F1 **0.919**, macro-F1 0.898, ROC-AUC 0.958 |
 | **RQ2** Model có tổng quát hóa không? | **Không.** Trên Hassan accuracy chỉ **0.439** (giảm 46 điểm %), specificity 0.038: gần như mọi URL hợp lệ bị báo phishing. Nguồn Tranco (benign quốc tế) chỉ đúng 30% ngay trên test nội bộ |
-| **RQ3** PCA có giúp không? | **Không.** Giữ 90% phương sai (8 thành phần): accuracy trên val 0.773 so với 0.871 khi dùng đủ 21 feature. Hướng biến thiên nhiều nhất không phải hướng phân biệt phishing |
-| **RQ4** Phân cụm có tách được phishing không? | **Không.** ARI ≈ 0 với k=2; tốt nhất 0.21 (GMM, k=4). Dữ liệu có cấu trúc cụm, nhưng các cụm không trùng với ranh giới phishing/benign |
+| **RQ3** PCA có giúp không? | **Không.** Giữ 90% phương sai (8 thành phần): accuracy trên val 0.773 so với 0.871 khi dùng đủ 21 feature. Hướng biến thiên nhiều nhất không phải hướng phân biệt phishing ([4.2](#42-pca-phân-tích-thành-phần-chính)) |
+| **RQ4** Phân cụm có tách được phishing không? | **Không.** ARI ≈ 0 với k=2; tốt nhất 0.21 (GMM, k=4). Dữ liệu có cấu trúc cụm, nhưng các cụm khớp với nguồn dữ liệu hơn là với nhãn ([4.3](#43-phân-cụm-k-means-gmm)) |
 
 Các kết quả "không" ở trên **là kết quả có giá trị**, không phải thất bại: chúng chỉ ra chính xác dữ liệu và model hỏng ở đâu.
 
 ### 7.2 Thí nghiệm bổ sung: cách xử lý dữ liệu ảnh hưởng thế nào
 Cùng Logistic Regression C=10 trên tập FULL, chỉ thay cách xử lý dữ liệu. Δ là chênh lệch macro-F1 so với baseline trên test (khoảng tin cậy 95% bootstrap ghép cặp, p-value McNemar).
 
-| Cách xử lý | Test macro-F1 | Δ so với baseline | Hassan macro-F1 |
-|---|---|---|---|
-| Baseline: median + StandardScaler (= model chính) | 0.898 | — | 0.332 |
-| log1p | 0.899 | +0.001, không có ý nghĩa (p = 0.41) | 0.319 |
-| QuantileTransformer | 0.884 | **−0.015**, kém hơn (p ≈ 2e-19) | 0.372 |
-| class_weight = balanced | 0.854 | −0.044, kém hơn; chỉnh lại ngưỡng trên val thì bằng baseline | 0.335 |
-| **TF-IDF n-gram ký tự** | **0.938** | **+0.040** [+0.033, +0.046], p ≈ 2e-28 | 0.456 |
-| **TF-IDF n-gram, bỏ `www.`** | 0.918 | +0.019 | **0.584** (tốt nhất) |
-
-Các kỹ thuật xử lý dữ liệu kinh điển trên 21 feature số (mỗi dòng chỉ đổi một bước so với baseline):
-
-| Kỹ thuật | Test macro-F1 | Δ so với baseline [CI95] | Kết luận |
-|---|---|---|---|
-| Cắt ngoại lai (winsorize 1–99%) | 0.898 | −0.000 [−0.002, +0.001] | Không khác biệt |
-| Lọc tương quan (\|r\| > 0.9) | 0.898 | −0.000 [−0.000, +0.000] | Không khác biệt; bỏ 2 feature không mất gì |
-| SelectKBest (10 feature, MI) | 0.899 | +0.001 [−0.001, +0.002] | Không khác biệt; một nửa số feature là đủ |
-| Cụm K-Means làm feature (k=8) | 0.898 | +0.000 [−0.001, +0.001] | Không khác biệt |
-| Feature đa thức bậc 2 | **0.902** | +0.003 [+0.000, +0.006] | Nhỉnh hơn chút; McNemar p = 0.07 nên chưa chắc chắn |
-| L1 / Lasso (C = 0.05) | 0.897 | −0.001 [−0.002, −0.001] | Kém hơn rất ít |
-| Rời rạc hóa (10 bin + one-hot) | 0.894 | −0.004 [−0.007, −0.001] | Kém hơn rất ít |
-| Undersampling / oversampling | 0.857 | −0.041 | Kém hơn ở ngưỡng 0.5 (giống `class_weight`: chỉ dịch ngưỡng) |
-| PCA 95% (10 thành phần) | 0.806 | **−0.092** | Kém hơn rõ rệt (hướng hữu ích có phương sai nhỏ, xem 4.2) |
+| Cách xử lý | Test macro-F1 | Δ so với baseline [CI95] | Hassan macro-F1 | Kết luận |
+|---|---|---|---|---|
+| Baseline: median + StandardScaler (= model chính) | 0.898 | — | 0.332 | |
+| log1p | 0.899 | +0.001 (p = 0.41) | 0.319 | Không khác biệt |
+| QuantileTransformer | 0.884 | **−0.015** (p ≈ 2e-19) | 0.372 | Kém hơn |
+| class_weight = balanced | 0.854 | −0.044 | 0.335 | Kém hơn ở ngưỡng 0.5; chỉnh ngưỡng trên val thì bằng baseline |
+| Undersampling 50/50 | 0.857 | −0.041 [−0.049, −0.033] | 0.353 | Giống `class_weight`: chỉ dịch ngưỡng |
+| PCA 95% (10 thành phần) | 0.806 | **−0.092** [−0.099, −0.084] | 0.423 | Kém hơn rõ rệt: hướng hữu ích có phương sai nhỏ (4.2) |
+| Cụm K-Means làm feature (k=8) | 0.898 | +0.000 [−0.001, +0.001] | 0.337 | Không khác biệt: cụm không mang thêm thông tin về nhãn (4.3) |
+| **TF-IDF n-gram ký tự** | **0.938** | **+0.040** [+0.033, +0.046] (p ≈ 2e-28) | 0.456 | Tốt nhất trên test |
+| **TF-IDF n-gram, bỏ `www.`** | 0.918 | +0.019 | **0.584** | Tổng quát hóa tốt nhất |
 
 Rút ra:
 1. **Đọc trực tiếp chuỗi URL (TF-IDF) tốt hơn hẳn 21 feature đếm.**
 2. **Đổi cách scale hầu như không giúp gì.** Các feature lệch mạnh nhưng thông tin nằm ở chỗ "có hay không", không ở độ lớn. QuantileTransformer còn làm mất khoảng cách giữa các giá trị cực trị nên kém hơn.
 3. **class_weight chỉ dịch ngưỡng quyết định.** Chọn ngưỡng trên val cho cùng kết quả.
 4. **Bỏ `www.` làm điểm nội bộ giảm nhưng tổng quát hóa tăng** (specificity trên Hassan 0.22 → 0.45). Nghĩa là một phần điểm nội bộ đến từ lối tắt `www.`, và con số sau khi bỏ trung thực hơn.
-5. **Với 21 feature số, các kỹ thuật kinh điển (cắt ngoại lai, chọn feature, rời rạc hóa, đa thức, cụm làm feature) chỉ thay đổi macro-F1 dưới ±0.005.** Giới hạn nằm ở thông tin có trong feature (và dấu vết thu thập), không nằm ở cách xử lý. Chọn feature cho thấy có thể bỏ một nửa số feature mà không mất gì.
+5. **Dùng cụm K-Means làm feature không giúp gì,** khớp với 4.3: cụm phản ánh nguồn dữ liệu và `www.`, những thông tin mà 21 feature đã có sẵn. **PCA thì làm hại**, vì nó bỏ đi đúng những hướng có phương sai nhỏ nhưng phân biệt được phishing.
 6. **Leave-one-source-out:** URL benign của tinnhiem được nhận đúng 93–97% khi nguồn này có trong train, nhưng chỉ **7–12%** khi bị loại khỏi train; với Tranco là 36–79% → **15–23%**. Model phụ thuộc rất nặng vào nguồn, và đó là giới hạn của chính dataset.
 
 Thí nghiệm này chạy **sau khi** test đã mở cho model chính, nên được trình bày như một thí nghiệm thứ hai và không thay model chính.
@@ -503,7 +474,7 @@ Project/
 │   ├── pipeline.py               ← toàn bộ benchmark chính      (mục 5–7.1)
 │   ├── experiments.py            ← thí nghiệm bổ sung          (mục 3.7–3.8, 7.2)
 │   ├── analysis.py               ← chọn feature, PCA, phân cụm (mục 4)
-│   ├── transformers.py           ← cắt ngoại lai, lọc tương quan, cụm làm feature, resampling
+│   ├── transformers.py           ← cụm K-Means làm feature, undersampling
 │   ├── evaluate.py               ← metric + khoảng tin cậy      (mục 6.2–6.3)
 │   └── download.py               ← tải dữ liệu Hassan + JPCERT
 ├── tests/                        ← test tự động (pytest)
@@ -530,7 +501,7 @@ Project/
 | 3 | `run_quick` | Train 10 cấu hình, chọn trên val (5.5) | `quick_val_*.csv` |
 | 4 | `run_final_test` | Chấm model đã chọn trên test một lần; phân tích theo nguồn, tier, loại giả mạo | `classification_metrics.csv`, `test_by_*.csv` |
 | 5 | `run_external` | Chấm trên Hassan, JPCERT (6.4) | `external_metrics.csv` |
-| 6 | `run_pca_cluster` | PCA, K-Means, GMM (5.6–5.7) | `pca_results.csv`, `clustering_results.csv` |
+| 6 | `run_pca_cluster` | PCA, K-Means, GMM cho RQ3–RQ4 (7.1) | `pca_results.csv`, `clustering_results.csv` |
 | 7 | `run_figures`, `write_reports` | Vẽ hình, viết báo cáo | `figures/`, `DECISION.md`, `QUICK_RESULTS.md` |
 | 8 | `run_data_analysis` → `analysis.py` | Phân tích dữ liệu (mục 4). Bỏ qua khi `--mode quick` | `DATA_ANALYSIS.md`, `feature_*.csv`, `pca_*.csv`, `clustering_*.csv`, `cluster_profiles.csv` |
 | 9 | `run_supplementary` → `experiments.py` | Thí nghiệm bổ sung (7.2). Bỏ qua khi `--mode quick` | `EXPERIMENTS.md` và các CSV, hình đi kèm |
@@ -556,7 +527,7 @@ pip install -e ".[dev]"
 python -m phishing_ml.cli run --mode quick   # benchmark chính, ≈1 phút
 python -m phishing_ml.cli run                # + PCA, phân cụm, phân tích dữ liệu, thí nghiệm bổ sung, ≈8 phút
 python -m phishing_ml.cli analysis           # chỉ phân tích dữ liệu (chọn feature, PCA, phân cụm), ≈2 phút
-python -m phishing_ml.cli experiments        # chỉ thí nghiệm bổ sung (21 cách xử lý), ≈6 phút
+python -m phishing_ml.cli experiments        # chỉ thí nghiệm bổ sung (13 cách xử lý), ≈4 phút
 ```
 Kết quả ghi đè vào `outputs/`. Seed cố định (42), nên chạy lại ra cùng số liệu (chỉ cột thời gian chạy `fit_s` thay đổi). Nếu thiếu dữ liệu, lệnh in `BLOCKED` kèm danh sách file thiếu.
 
